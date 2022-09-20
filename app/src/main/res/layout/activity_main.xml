@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:paddingBottom="16dp">
+
+    <TextureView
+        android:id="@+id/textureView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="5dp">
+
+        <ImageButton
+            android:id="@+id/capture_button"
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/ic_shutter"
+            android:contentDescription="@string/capture"
+            android:scaleType="fitCenter" />
+
+        <Chronometer
+            android:id="@+id/chronometer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#ff0000"
+            android:textSize="24sp"
+            android:layout_centerHorizontal="true"
+            android:paddingBottom="3dp"
+            android:visibility="invisible"/>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:paddingStart="74dp"
+        android:paddingBottom="22dp">
+
+        <ImageButton
+            android:id="@+id/cam_facing_switch"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:backgroundTint="#d3d3d3"
+            android:background="@drawable/ic_baseline_cameraswitch_24" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:paddingEnd="74dp"
+        android:paddingBottom="19dp">
+
+        <ImageButton
+            android:id="@+id/lens_switch"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:backgroundTint="#d3d3d3"
+            android:background="@drawable/ic_baseline_switch_camera_24" />
+    </LinearLayout>
+
+
+</FrameLayout>
