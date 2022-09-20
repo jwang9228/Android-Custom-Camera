@@ -15,6 +15,7 @@ import android.os.*;
 import android.util.*;
 import android.view.*;
 import android.widget.Chronometer;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -31,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
+import java.util.Set;
 
 // manages camera operations
 public class RawCameraManager {
@@ -50,11 +52,13 @@ public class RawCameraManager {
     private CameraManager camera_manager;
     private CameraDevice camera_device;
     private String camera_id = "0";
+    private String physical_id = "";
 
     // request-related fields
     private CameraCharacteristics camera_characteristics;
     private CaptureResult capture_result;
     private CaptureRequest.Builder preview_capture_request;
+    private boolean raw_supported;
     private CaptureRequest.Builder raw_capture_request;
     private Size preview_size;
 
@@ -77,6 +81,7 @@ public class RawCameraManager {
     // offload camera configuration tasks from UI thread
     private HandlerThread background_handler_thread;
     private Handler background_handler;
+    private Toast toast;
 
     // manage listeners
     private class ListenerManager {
@@ -128,8 +133,8 @@ public class RawCameraManager {
             on_raw_image_available_listener = imageReader -> {
                 Log.d(TAG, "Raw image available");
                 raw_images_captured++;
-                //background_handler.post(new DngImageSaver(raw_image_reader.acquireNextImage(),
-                        //raw_image_file, capture_result, camera_characteristics));
+                // background_handler.post(new DngImageSaver(raw_image_reader.acquireNextImage(),
+                //raw_image_file, capture_result, camera_characteristics));
                 final Activity activity = (Activity) context;
                 activity.runOnUiThread(() -> new DngImageSaver(raw_image_reader.acquireNextImage(),
                         raw_image_file, capture_result, camera_characteristics).processRawImage());
@@ -181,6 +186,16 @@ public class RawCameraManager {
     public void toggleRawCapture(int fps, int capture_duration, Chronometer chronometer) {
         current_fps = fps;
         seconds_to_capture = capture_duration;
+
+        // first check if raw is supported, if it isn't, then don't even start anything
+        if (!raw_supported) {
+            if (toast != null) {
+                toast.cancel();
+            }
+            toast = Toast.makeText(context, "No RAW capabilities found for current lens", Toast.LENGTH_SHORT);
+            toast.show();
+            return;
+        }
 
         // toggle
         capture_in_progress = !capture_in_progress;
@@ -277,35 +292,26 @@ public class RawCameraManager {
             StreamConfigurationMap map =
                     camera_characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
-                // get lens facing, skip over any FRONT lens
-                /*
-                if (current_cam_characteristics.get(CameraCharacteristics.LENS_FACING) ==
-                        CameraCharacteristics.LENS_FACING_FRONT) {
-                    continue;
-                }
-
-                // get capabilities for current lens, if no RAW, try to find another lens that does support
-                if (!Utils.containsMode(current_cam_characteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES),
-                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW)) {
-                    continue;
-                }
-
-                 */
-
             preview_size = Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     width, height);
             Log.d(TAG, "Preview size chosen: " + preview_size);
 
-            // find largest supported image size for RAW
-            Size largest_raw_image_size = Collections.max(
-                    Arrays.asList(map.getOutputSizes(ImageFormat.RAW_SENSOR)),
+            // check for RAW support here
+            raw_supported = Utils.containsMode(camera_characteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES),
+                    CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW);
+
+            if (raw_supported) {
+                // find largest supported image size for RAW
+                Size largest_raw_image_size = Collections.max(
+                        Arrays.asList(map.getOutputSizes(ImageFormat.RAW_SENSOR)),
                         new Utils.SizeComparator()
-            );
-            // create an image reader with the largest possible raw image size
-            raw_image_reader = ImageReader.newInstance(largest_raw_image_size.getWidth(), largest_raw_image_size.getHeight(),
-                    ImageFormat.RAW_SENSOR, 50);
-            Log.d(TAG, "RAW size chosen: " + largest_raw_image_size);
-            raw_image_reader.setOnImageAvailableListener(listener_manager.getOnImageReaderAvailableListener(), background_handler);
+                );
+                // create an image reader with the largest possible raw image size
+                raw_image_reader = ImageReader.newInstance(largest_raw_image_size.getWidth(), largest_raw_image_size.getHeight(),
+                        ImageFormat.RAW_SENSOR, 50);
+                Log.d(TAG, "RAW size chosen: " + largest_raw_image_size);
+                raw_image_reader.setOnImageAvailableListener(listener_manager.getOnImageReaderAvailableListener(), background_handler);
+            }
         }
         catch (Exception e) {
             Log.e(TAG, "Setup Camera Error: ", e);
@@ -339,9 +345,100 @@ public class RawCameraManager {
         reopenCamera();
     }
 
+    // determines if, for the current facing lens, there is at least one other same-facing logical ID to switch to
+    private boolean canSwitchLogicalLens() {
+        // get current facing
+        int lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
+        int num_same_facing = 0;
+        // determine, for this facing direction, if there is more than one logical ID with same facing
+        try {
+            for (String logical_id : camera_manager.getCameraIdList()) {
+                if (camera_manager.getCameraCharacteristics(logical_id).get(CameraCharacteristics.LENS_FACING) == lens_facing) {
+                    num_same_facing++;
+                }
+            }
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error querying logical IDs: " + e);
+        }
+        return num_same_facing > 1;
+    }
+
+    // determines if, for the current facing lens, there is at least one other same-facing physical ID to switch to
+    private boolean canSwitchPhysicalLens() {
+        // here a logical camera is simply split into similar facing physical cameras
+        // this check will see if there are any physical camera IDs, and if there are multiple as well
+        return camera_characteristics.getPhysicalCameraIds().size() > 1;
+    }
+
+    // gets all logical IDs of in a lens facing direction
+    private ArrayList<String> getLogicalIds() {
+        ArrayList<String> ids = new ArrayList<>();
+        int current_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
+        try {
+            for (String id : camera_manager.getCameraIdList()) {
+                if (camera_manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) == current_facing) {
+                    ids.add(id);
+                }
+            }
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error getting IDs: " + e);
+        }
+        return ids;
+    }
+
+    // cycle to the next available logical ID, called when there are at least 2 logical IDs of same lens facing
+    private void getNextLogical() {
+        ArrayList<String> same_facing_ids = getLogicalIds();
+        boolean is_last = camera_id.equals(same_facing_ids.get(same_facing_ids.size() - 1));
+        // if ID is the last in the set, go back to beginning
+        Log.d(TAG, "Is last: " + is_last);
+        if (is_last) {
+            camera_id = same_facing_ids.get(0);
+        }
+        else {
+            camera_id = same_facing_ids.get(same_facing_ids.indexOf(camera_id) + 1);
+        }
+        Log.d(TAG, "Next logical ID chosen: " + camera_id);
+    }
+
+    // cycle to the next available physical ID, called when there are at least 2 physical IDs
+    private void getNextPhysical() {
+        Set<String> physical_ids = camera_characteristics.getPhysicalCameraIds();
+        boolean is_last = physical_id.equals(Utils.setNthElement(physical_ids, physical_ids.size() - 1));
+        // if ID is the last in the set, go back to beginning
+        Log.d(TAG, "Is last: " + is_last);
+        if (is_last) {
+            physical_id = Utils.setNthElement(physical_ids, 0);
+        }
+        // else get the next ID
+        else {
+            physical_id = Utils.setNthElement(physical_ids, Utils.setIndexOf(physical_ids, physical_id) + 1);
+        }
+        Log.d(TAG, "Next physical ID chosen: " + physical_id);
+    }
+
     // switch lenses, if possible
     public void switchLens() {
-
+        // for devices with multiple exposed logical IDs
+        if (canSwitchLogicalLens()) {
+            getNextLogical();
+            reopenCamera();
+        }
+        // for devices with multiple exposed physical IDs
+        else if (canSwitchPhysicalLens()) {
+            getNextPhysical();
+            reopenCamera();
+        }
+        else {
+            // can't switch lens
+            if (toast != null) {
+                toast.cancel();
+            }
+            toast = Toast.makeText(context, "Cannot switch, no other lenses found", Toast.LENGTH_SHORT);
+            toast.show();
+        }
     }
 
     // adjust aspect ratio
@@ -420,6 +517,11 @@ public class RawCameraManager {
         return camera_characteristics.getPhysicalCameraIds().size() > 0;
     }
 
+    // returns first available physical ID
+    private String getPhysicalID() {
+        return camera_characteristics.getPhysicalCameraIds().iterator().next();
+    }
+
     // starts preview when camera is set up and connected
     private void startCameraPreview() {
         Log.d(TAG, "Attempting to start camera preview...");
@@ -435,31 +537,24 @@ public class RawCameraManager {
             preview_capture_request.addTarget(preview_surface);
 
             // request for raw captures
-            raw_capture_request = camera_device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            raw_capture_request.addTarget(raw_image_reader.getSurface());
-            //setManualParameters();
-
-            CameraCaptureSession.CaptureCallback raw_capture_callback = new CameraCaptureSession.CaptureCallback() {
-                @Override
-                public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request, long timestamp, long frameNumber) {
-                    super.onCaptureStarted(session, request, timestamp, frameNumber);
-                }
-
-                @Override
-                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                    super.onCaptureCompleted(session, request, result);
-                    getCurrentResultSettings(result);
-                    capture_result = result;
-                }
-            };
+            if (raw_supported) {
+                raw_capture_request = camera_device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                raw_capture_request.addTarget(raw_image_reader.getSurface());
+                //setManualParameters();
+            }
+            List<OutputConfiguration> configurations = new ArrayList<>();
             OutputConfiguration preview_config = new OutputConfiguration(preview_surface);
             if (hasPhysicalID()) {
-                preview_config.setPhysicalCameraId("3");
+                if (physical_id.equals("")) physical_id = getPhysicalID();
+                preview_config.setPhysicalCameraId(physical_id);
             }
-            //preview_config.setPhysicalCameraId("3");
-            OutputConfiguration raw_config = new OutputConfiguration(raw_image_reader.getSurface());
+            configurations.add(preview_config);
+            if (raw_supported) {
+                OutputConfiguration raw_config = new OutputConfiguration(raw_image_reader.getSurface());
+                configurations.add(raw_config);
+            }
             SessionConfiguration camera_session_configuration = new SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
-                    Arrays.asList(preview_config, raw_config), new HandlerExecutor(background_handler.getLooper()), new CameraCaptureSession.StateCallback() {
+                    configurations, new HandlerExecutor(background_handler.getLooper()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(CameraCaptureSession session) {
                     Log.d(TAG, "Capture session successfully configured");
@@ -474,15 +569,25 @@ public class RawCameraManager {
                             // stop preview
                             session.stopRepeating();
                             // start raw (preview should be frozen or cut out)
-                            session.setRepeatingRequest(raw_capture_request.build(), raw_capture_callback,
-                                    background_handler);
+                            session.setRepeatingRequest(raw_capture_request.build(), new CameraCaptureSession.CaptureCallback() {
+                                @Override
+                                public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request, long timestamp, long frameNumber) {
+                                    super.onCaptureStarted(session, request, timestamp, frameNumber);
+                                }
+
+                                @Override
+                                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                                    super.onCaptureCompleted(session, request, result);
+                                    getCurrentResultSettings(result);
+                                    capture_result = result;
+                                }
+                            }, background_handler);
                         }
                         // preview
                         else {
                             // stop raw
                             session.stopRepeating();
                             // start preview
-                            preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, 0.6f);
                             session.setRepeatingRequest(preview_capture_request.build(), null,
                                     background_handler);
                         }
@@ -561,7 +666,6 @@ public class RawCameraManager {
 
 
     public String getCurrentResultSettings(CaptureResult result) {
-        Log.d(TAG, "getCurrentResultSettings");
         String resultSettings = "";
 
         if (result != null) {
@@ -571,13 +675,9 @@ public class RawCameraManager {
             infoBuilder.append(String.format(Locale.US, "%s", Utils.curr_time));
 
             for (CaptureResult.Key<?> key : result.getKeys()) {
-                //infoBuilder.append(String.format(Locale.US, "%s:  ",
-                //key.getName()));
 
                 try {
                     Object val = result.get(key);
-                    //Log.d(TAG, "TEST KEY NAME: " + key.getName());
-
 
                     if ((val != null)) {
                         if (val.getClass().isArray()) {
@@ -590,7 +690,6 @@ public class RawCameraManager {
                             }
 
                             if (Utils.iter == 0) {
-                                Log.d(TAG, "CR key array val: " + key.getName());
                                 infoBuilder.append(String.format(Locale.US, "%s:  ",
                                         key.getName()));
 
@@ -613,7 +712,6 @@ public class RawCameraManager {
                                 for (int i = 0; i < len; i++) {
                                     if (!Array.get(Utils.capture_res_map.get(key), i).equals(Array.get(val, i))) {
                                         differ = true;
-                                        Log.d(TAG, "array differ: " + key.getName());
                                         break;
                                     }
                                 }
@@ -633,9 +731,6 @@ public class RawCameraManager {
                             }
 
                         } else {
-                            // Single value
-                            //infoBuilder.append(String.format(Locale.US, "%s\n",
-                            //val));
                             if (Utils.iter == 0) {
                                 infoBuilder.append(String.format(Locale.US, "%s:  ",
                                         key.getName()));
@@ -651,7 +746,6 @@ public class RawCameraManager {
                                             key.getName()));
                                     infoBuilder.append(String.format(Locale.US, "%s\n",
                                             val));
-                                    Log.d(TAG, "differ: " + key.getName() + " before: " + Utils.capture_res_map.get(key) + " current: " + val);
                                     Utils.capture_res_map.put(key, val);
                                 }
                             }

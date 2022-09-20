@@ -56,6 +56,30 @@ public class Utils {
         }
     }
 
+    // gets the nth element in a set of strings
+    public static String setNthElement(Set<String> set, int n){
+        int index = 0;
+        for(String element : set){
+            if (index == n){
+                return element;
+            }
+            index++;
+        }
+        return null;
+    }
+
+    // gets the index of an element in a set of strings
+    public static int setIndexOf(Set<String> set, String elem) {
+        int index = 0;
+        for (String element : set) {
+            if (element.equals(elem)) {
+                return index;
+            }
+            index++;
+        }
+        return index;
+    }
+
     // sends email with header and msg
     public static void sendReport(Context context, String header, String msg)
     {
