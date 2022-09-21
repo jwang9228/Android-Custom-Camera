@@ -1,4 +1,5 @@
 package com.example.rawstreamer;
+import java.lang.reflect.Array;
 import java.util.*;
 
 import android.content.Context;
@@ -10,11 +11,10 @@ import android.widget.Toast;
 // common utility functions for image processing and handling
 public class Utils {
 
-    public static int iter = 0;
-    public static HashMap<CaptureResult.Key<?>, Object> capture_res_map = new HashMap<>();
-    public static String curr_time = "";
-    public static String init_vals = "";
-    public static String changed_vals = "";
+    private static int frame_num = 0;
+    private static final HashMap<CaptureResult.Key<?>, Object> capture_res_map = new HashMap<>();
+    public static String init_values = "";
+    private static String changed_values = "";
 
     // compare two areas
     public static class SizeComparator implements Comparator<Size> {
@@ -78,6 +78,110 @@ public class Utils {
             index++;
         }
         return index;
+    }
+
+    // dump results of a capture
+    public static String getCurrentResultSettings(CaptureResult result) {
+        String resultSettings;
+
+        if (result != null) {
+            StringBuilder infoBuilder = new StringBuilder();
+            String frame_num = "Frame " + Utils.frame_num + "\n";
+            infoBuilder.append(String.format(Locale.US, "%s", frame_num));
+
+            for (CaptureResult.Key<?> key : result.getKeys()) {
+
+                try {
+                    Object val = result.get(key);
+
+                    if ((val != null)) {
+                        if (val.getClass().isArray()) {
+
+                            int len = Array.getLength(val);
+                            Object[] arr = new Object[len];
+
+                            for (int i = 0; i < len; i++) {
+                                arr[i] = Array.get(val, i);
+                            }
+
+                            if (Utils.frame_num == 0) {
+                                infoBuilder.append(String.format(Locale.US, "%s:  ",
+                                        key.getName()));
+
+                                // Iterate an array-type value
+                                infoBuilder.append("[");
+
+                                for (int i = 0; i < len; i++) {
+                                    infoBuilder.append(String.format(Locale.US, "%s%s",
+                                            Array.get(val, i), (i + 1 == len) ? ""
+                                                    : ", "));
+                                }
+
+
+                                infoBuilder.append("]\n");
+                                Utils.capture_res_map.put(key, arr);
+                            }
+                            else if ((Utils.frame_num > 0) && (key.getName().startsWith("android")) && (!key.getName().startsWith("android.tonemap.curve"))) {
+
+                                boolean differ = false;
+                                for (int i = 0; i < len; i++) {
+                                    if (!Array.get(Utils.capture_res_map.get(key), i).equals(Array.get(val, i))) {
+                                        differ = true;
+                                        break;
+                                    }
+                                }
+                                if (differ) {
+                                    infoBuilder.append(String.format(Locale.US, "%s:  ",
+                                            key.getName()));
+                                    // Iterate an array-type value
+                                    infoBuilder.append("[");
+                                    for (int i = 0; i < len; i++) {
+                                        infoBuilder.append(String.format(Locale.US, "%s%s",
+                                                Array.get(val, i), (i + 1 == len) ? ""
+                                                        : ", "));
+                                    }
+                                    infoBuilder.append("]\n");
+                                    Utils.capture_res_map.put(key, val);
+                                }
+                            }
+
+                        } else {
+                            if (Utils.frame_num == 0) {
+                                infoBuilder.append(String.format(Locale.US, "%s:  ",
+                                        key.getName()));
+                                infoBuilder.append(String.format(Locale.US, "%s\n",
+                                        val));
+                                Utils.capture_res_map.put(key, val);
+                            }
+                            else if ((Utils.frame_num > 0) && (key.getName().startsWith("android")) && (!key.getName().startsWith("android.tonemap.curve"))) {
+
+                                if (!Utils.capture_res_map.get(key).equals(val)) {
+                                    infoBuilder.append(String.format(Locale.US, "%s:  ",
+                                            key.getName()));
+                                    infoBuilder.append(String.format(Locale.US, "%s\n",
+                                            val));
+                                    Utils.capture_res_map.put(key, val);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    infoBuilder.append("ERROR\n");
+                }
+            }
+            resultSettings = infoBuilder.toString();
+        } else {
+            resultSettings = "No information found";
+        }
+        if (Utils.frame_num == 0) {
+            Utils.init_values = resultSettings;
+        }
+        else {
+            Utils.changed_values += resultSettings + "\n";
+        }
+        Utils.frame_num++;
+        return resultSettings + "\n";
     }
 
     // sends email with header and msg

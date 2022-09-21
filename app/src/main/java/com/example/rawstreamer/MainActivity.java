@@ -15,10 +15,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private CustomCameraManager camera_manager;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
-    // default is 15 FPS
-    private final int selected_fps = 15;
-    // default is 10 seconds
-    private final int capture_duration = 10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         capture_button.setOnClickListener(view -> {
             // tell camera manager to start raw capture if not started, or cut raw capture
             // if capture in sequence
-            camera_manager.toggleRawCapture(selected_fps, capture_duration, chronometer);
+            camera_manager.toggleRawCapture(chronometer);
         });
 
         cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());

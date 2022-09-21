@@ -1,7 +1,6 @@
 package com.example.rawstreamer;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.*;
 import android.content.pm.PackageManager;
@@ -16,22 +15,15 @@ import android.util.*;
 import android.view.*;
 import android.widget.Chronometer;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.common.util.concurrent.HandlerExecutor;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Queue;
 import java.util.Set;
 
 // manages camera operations
@@ -56,20 +48,19 @@ public class CustomCameraManager {
 
     // request-related fields
     private CameraCharacteristics camera_characteristics;
+    private int lens_facing;
+    private boolean is_logical_multi_cam;
     private CaptureResult capture_result;
     private CaptureRequest.Builder preview_capture_request;
+    private Surface preview_surface;
     private boolean raw_supported;
     private CaptureRequest.Builder raw_capture_request;
     private Size preview_size;
+    private CameraCaptureSession capture_session;
 
     // raw aux fields
     private boolean capture_in_progress;
     private int raw_images_captured = 0;
-    // options: [1, 3, 5, 10, 15, 20, 24]
-    private int current_fps = 15;
-    // options: [3, 5, 10, 15, 30, 60]
-    private int seconds_to_capture = 10;
-    private Queue<Pair<Image, CaptureResult>> raw_image_queue = new LinkedList<>();
     private long start_time;
     private long end_time;
 
@@ -167,14 +158,12 @@ public class CustomCameraManager {
                 @Override
                 public void onDisconnected(CameraDevice camera) {
                     camera.close();
-                    camera_device = null;
                     Log.d(TAG, "Camera disconnected");
                 }
 
                 @Override
                 public void onError(CameraDevice camera, int error) {
-                    camera.close();
-                    camera_device = null;
+                    onDisconnected(camera);
                     Log.e(TAG, "Camera error: " + error);
                 }
             };
@@ -183,9 +172,7 @@ public class CustomCameraManager {
 
     // sets flags based on capture process: capture_in_progress = false if in preview and raw capture
     // started, capture_in_progress = true if in raw capture
-    public void toggleRawCapture(int fps, int capture_duration, Chronometer chronometer) {
-        current_fps = fps;
-        seconds_to_capture = capture_duration;
+    public void toggleRawCapture(Chronometer chronometer) {
 
         // first check if raw is supported, if it isn't, then don't even start anything
         if (!raw_supported) {
@@ -212,11 +199,11 @@ public class CustomCameraManager {
             // elapsedRealtime() in ms
             long capture_time_seconds = (end_time - start_time) / 1000;
             Log.d(TAG, "STATS: Capture time : " + capture_time_seconds);
-            Log.d(TAG, "STATS: Average capture FPS: " + raw_images_captured / capture_time_seconds);
+            if (capture_time_seconds > 0) Log.d(TAG, "STATS: Average capture FPS: " + raw_images_captured / capture_time_seconds);
             raw_images_captured = 0;
             chronometer.stop();
             chronometer.setVisibility(View.INVISIBLE);
-            Utils.sendReport(context, "", Utils.init_vals);
+            Utils.sendReport(context, "", Utils.init_values);
         }
         // start a new session
         reopenCamera();
@@ -288,6 +275,13 @@ public class CustomCameraManager {
         try {
             camera_characteristics =
                     camera_manager.getCameraCharacteristics(camera_id);
+
+            // determine if this camera is backed by multiple physical IDs
+            is_logical_multi_cam = camera_characteristics.getPhysicalCameraIds().size() > 1;
+
+            // determine lens facing, 0 for front, 1 for rear
+            lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
+
             // resolutions map
             StreamConfigurationMap map =
                     camera_characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -318,13 +312,23 @@ public class CustomCameraManager {
         }
     }
 
+    // gets the lens facing direction of a camera ID, 0 for rear, 1 for front
+    private int getLensFacing(String id) {
+        try {
+            return camera_manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error getting lens facing: " + e);
+        }
+        return -1;
+    }
+
     // return the first available ID for the given lens facing direction
     private String getFirstAvailableID(int lens_facing) {
         try {
-            for (String camera_id : camera_manager.getCameraIdList()) {
-                CameraCharacteristics current_characteristics = camera_manager.getCameraCharacteristics(camera_id);
-                if (current_characteristics.get(CameraCharacteristics.LENS_FACING) == lens_facing) {
-                    return camera_id;
+            for (String id : camera_manager.getCameraIdList()) {
+                if (getLensFacing(id) == lens_facing) {
+                    return id;
                 }
             }
         }
@@ -336,27 +340,21 @@ public class CustomCameraManager {
 
     // switch between front and back facing cameras
     public void switchFacing() {
-        // get current facing
-        int lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
         // if back facing, find first available front facing, vice versa
         camera_id = (lens_facing == CameraCharacteristics.LENS_FACING_BACK) ?
                 getFirstAvailableID(CameraCharacteristics.LENS_FACING_FRONT) :
                 getFirstAvailableID(CameraCharacteristics.LENS_FACING_BACK);
+        if (camera_id.equals("")) Log.e(TAG, "Error getting ID to switch to");
         reopenCamera();
     }
 
     // determines if, for the current facing lens, there is at least one other same-facing logical ID to switch to
     private boolean canSwitchLogicalLens() {
-        // get current facing
-        int lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
         int num_same_facing = 0;
         // determine, for this facing direction, if there is more than one logical ID with same facing
         try {
-            for (String logical_id : camera_manager.getCameraIdList()) {
-                if (camera_manager.getCameraCharacteristics(logical_id).get(CameraCharacteristics.LENS_FACING) == lens_facing) {
-                    num_same_facing++;
-                }
-            }
+            for (String logical_id : camera_manager.getCameraIdList())
+                if (getLensFacing(logical_id) == lens_facing) num_same_facing++;
         }
         catch (Exception e) {
             Log.e(TAG, "Error querying logical IDs: " + e);
@@ -364,22 +362,12 @@ public class CustomCameraManager {
         return num_same_facing > 1;
     }
 
-    // determines if, for the current facing lens, there is at least one other same-facing physical ID to switch to
-    private boolean canSwitchPhysicalLens() {
-        // here a logical camera is simply split into similar facing physical cameras
-        // this check will see if there are any physical camera IDs, and if there are multiple as well
-        return camera_characteristics.getPhysicalCameraIds().size() > 1;
-    }
-
-    // gets all logical IDs of in a lens facing direction
+    // gets all logical IDs in the current lens facing direction
     private ArrayList<String> getLogicalIds() {
         ArrayList<String> ids = new ArrayList<>();
-        int current_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
         try {
-            for (String id : camera_manager.getCameraIdList()) {
-                if (camera_manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) == current_facing) {
-                    ids.add(id);
-                }
+            for (String logical_id : camera_manager.getCameraIdList()) {
+                if (getLensFacing(logical_id) == lens_facing) ids.add(logical_id);
             }
         }
         catch (Exception e) {
@@ -427,16 +415,15 @@ public class CustomCameraManager {
             reopenCamera();
         }
         // for devices with multiple exposed physical IDs
-        else if (canSwitchPhysicalLens()) {
+        else if (is_logical_multi_cam) {
             getNextPhysical();
             reopenCamera();
         }
         else {
             // can't switch lens
-            if (toast != null) {
-                toast.cancel();
-            }
-            toast = Toast.makeText(context, "Cannot switch, no other lenses found", Toast.LENGTH_SHORT);
+            if (toast != null) {toast.cancel();}
+            String facing = (lens_facing == 0) ? "front" : "rear";
+            toast = Toast.makeText(context, "No other " + facing + "-facing lens found", Toast.LENGTH_SHORT);
             toast.show();
         }
     }
@@ -512,36 +499,107 @@ public class CustomCameraManager {
         return (360 - (cameraOrientation != null ? cameraOrientation : 0)) % 360;
     }
 
-    // check if lens has physical ID
-    private boolean hasPhysicalID() {
-        return camera_characteristics.getPhysicalCameraIds().size() > 0;
-    }
-
     // returns first available physical ID
-    private String getPhysicalID() {
+    private String getFirstPhysicalID() {
         return camera_characteristics.getPhysicalCameraIds().iterator().next();
     }
 
-    // starts preview when camera is set up and connected
-    private void startCameraPreview() {
-        Log.d(TAG, "Attempting to start camera preview...");
+    // creates a TEMPLATE_PREVIEW request for the preview display
+    private void createPreviewRequest() {
         try {
             // get surface texture and create new surface dedicated to preview
             setTextureTransform(camera_characteristics);
             SurfaceTexture surface_texture = texture_view.getSurfaceTexture();
             surface_texture.setDefaultBufferSize(preview_size.getWidth(), preview_size.getHeight());
-            Surface preview_surface = new Surface(surface_texture);
+            preview_surface = new Surface(surface_texture);
 
             // request for preview captures
             preview_capture_request = camera_device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             preview_capture_request.addTarget(preview_surface);
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error creating preview request: " + e);
+        }
+    }
 
+    // creates a request for raw capture
+    private void createRawRequest() {
+        try {
             // request for raw captures
             if (raw_supported) {
                 raw_capture_request = camera_device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                 raw_capture_request.addTarget(raw_image_reader.getSurface());
                 setManualParameters();
             }
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error creating raw request: " + e);
+        }
+    }
+
+    // starts preview when camera is set up and connected
+    private void startCameraPreview() {
+        Log.d(TAG, "Attempting to start camera preview");
+        try {
+            createPreviewRequest();
+            createRawRequest();
+
+            OutputConfiguration preview_output = new OutputConfiguration(preview_surface);
+            if (is_logical_multi_cam) {
+                if (physical_id.equals("")) {
+                    physical_id = getFirstPhysicalID();
+                }
+                // logical multi-cam logic is dictated by zoom ratio, zoom determines which physical ID
+                Range<Float> zoom_range = camera_characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+                if (physical_id.equals(getFirstPhysicalID())) {
+                    preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, 1.0f);
+                }
+                else {
+                    preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, (zoom_range.getLower()) * 1.0f);
+                }
+            }
+
+            List<OutputConfiguration> configurations = Collections.singletonList(preview_output);
+            SessionConfiguration camera_session_configuration = new SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
+                    configurations, new HandlerExecutor(background_handler.getLooper()), new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(CameraCaptureSession session) {
+                    Log.d(TAG, "Capture session successfully configured");
+                }
+
+                @Override
+                public void onReady(CameraCaptureSession session) {
+                    capture_session = session;
+                    try {
+                        capture_session.stopRepeating();
+                        capture_session.setRepeatingRequest(preview_capture_request.build(),
+                                new CameraCaptureSession.CaptureCallback() {
+                                    @Override
+                                    public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request, long timestamp, long frameNumber) {
+                                        super.onCaptureStarted(session, request, timestamp, frameNumber);
+                                    }
+
+                                    @Override
+                                    public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                                        super.onCaptureCompleted(session, request, result);
+                                        Utils.getCurrentResultSettings(result);
+                                        capture_result = result;
+                                    }
+                                    },
+                                background_handler);
+                    }
+                    catch (Exception e) {
+                        Log.d(TAG, "Set repeating request error: " + e);
+                    }
+                }
+
+                @Override
+                public void onConfigureFailed(CameraCaptureSession session) {
+                    Log.e(TAG, "Capture session failed to configure");
+                }
+            });
+
+            /*
             List<OutputConfiguration> configurations = new ArrayList<>();
             OutputConfiguration preview_config = new OutputConfiguration(preview_surface);
             if (hasPhysicalID()) {
@@ -604,6 +662,8 @@ public class CustomCameraManager {
                     Log.e(TAG, "Capture session failed to configure");
                 }
             });
+
+             */
             camera_device.createCaptureSession(camera_session_configuration);
         }
         catch (Exception e) {
@@ -664,112 +724,4 @@ public class CustomCameraManager {
             Log.e(TAG, "Stop background thread error: " + e);
         }
     }
-
-
-    public String getCurrentResultSettings(CaptureResult result) {
-        String resultSettings = "";
-
-        if (result != null) {
-            StringBuilder infoBuilder = new StringBuilder();
-            String frame_num = "Frame " + Utils.iter + "\n";
-            infoBuilder.append(String.format(Locale.US, "%s", frame_num));
-            infoBuilder.append(String.format(Locale.US, "%s", Utils.curr_time));
-
-            for (CaptureResult.Key<?> key : result.getKeys()) {
-
-                try {
-                    Object val = result.get(key);
-
-                    if ((val != null)) {
-                        if (val.getClass().isArray()) {
-
-                            int len = Array.getLength(val);
-                            Object[] arr = new Object[len];
-
-                            for (int i = 0; i < len; i++) {
-                                arr[i] = Array.get(val, i);
-                            }
-
-                            if (Utils.iter == 0) {
-                                infoBuilder.append(String.format(Locale.US, "%s:  ",
-                                        key.getName()));
-
-                                // Iterate an array-type value
-                                infoBuilder.append("[");
-
-                                for (int i = 0; i < len; i++) {
-                                    infoBuilder.append(String.format(Locale.US, "%s%s",
-                                            Array.get(val, i), (i + 1 == len) ? ""
-                                                    : ", "));
-                                }
-
-
-                                infoBuilder.append("]\n");
-                                Utils.capture_res_map.put(key, arr);
-                            }
-                            else if ((Utils.iter > 0) && (key.getName().startsWith("android")) && (!key.getName().startsWith("android.tonemap.curve"))) {
-
-                                boolean differ = false;
-                                for (int i = 0; i < len; i++) {
-                                    if (!Array.get(Utils.capture_res_map.get(key), i).equals(Array.get(val, i))) {
-                                        differ = true;
-                                        break;
-                                    }
-                                }
-                                if (differ) {
-                                    infoBuilder.append(String.format(Locale.US, "%s:  ",
-                                            key.getName()));
-                                    // Iterate an array-type value
-                                    infoBuilder.append("[");
-                                    for (int i = 0; i < len; i++) {
-                                        infoBuilder.append(String.format(Locale.US, "%s%s",
-                                                Array.get(val, i), (i + 1 == len) ? ""
-                                                        : ", "));
-                                    }
-                                    infoBuilder.append("]\n");
-                                    Utils.capture_res_map.put(key, val);
-                                }
-                            }
-
-                        } else {
-                            if (Utils.iter == 0) {
-                                infoBuilder.append(String.format(Locale.US, "%s:  ",
-                                        key.getName()));
-                                infoBuilder.append(String.format(Locale.US, "%s\n",
-                                        val));
-                                Utils.capture_res_map.put(key, val);
-                                Log.d(TAG, "CR key single val: " + key.getName());
-                            }
-                            else if ((Utils.iter > 0) && (key.getName().startsWith("android")) && (!key.getName().startsWith("android.tonemap.curve"))) {
-
-                                if (!Utils.capture_res_map.get(key).equals(val)) {
-                                    infoBuilder.append(String.format(Locale.US, "%s:  ",
-                                            key.getName()));
-                                    infoBuilder.append(String.format(Locale.US, "%s\n",
-                                            val));
-                                    Utils.capture_res_map.put(key, val);
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception e) {
-                    infoBuilder.append("ERROR\n");
-                    Log.e(TAG, "Key: " + key + " error:" + e.getMessage());
-                }
-            }
-            resultSettings = infoBuilder.toString();
-        } else {
-            resultSettings = "No information found";
-        }
-        if (Utils.iter == 0) {
-            Utils.init_vals = resultSettings;
-        }
-        else {
-            Utils.changed_vals += resultSettings + "\n";
-        }
-        Utils.iter++;
-        return resultSettings + "\n";
-    }
-
 }
