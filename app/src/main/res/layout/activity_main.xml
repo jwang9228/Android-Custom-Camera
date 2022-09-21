@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity"
     android:paddingBottom="16dp">
 
@@ -18,13 +19,20 @@
 
         <ImageButton
             android:id="@+id/capture_button"
-            android:layout_width="92dp"
-            android:layout_height="92dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:background="@drawable/ic_shutter"
             android:contentDescription="@string/capture"
             android:scaleType="fitCenter" />
+
+        <com.marcinmoskala.arcseekbar.ArcSeekBar
+            android:id="@+id/zoom_bar"
+            android:layout_width="180dp"
+            android:layout_height="45dp"
+            android:layout_above="@id/capture_button"
+            android:layout_centerHorizontal="true" />
 
         <Chronometer
             android:id="@+id/chronometer"
@@ -42,14 +50,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
-        android:paddingStart="74dp"
+        android:paddingStart="70dp"
         android:paddingEnd="10dp"
         android:paddingBottom="22dp">
 
         <ImageButton
             android:id="@+id/cam_facing_switch"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
+            android:layout_width="66dp"
+            android:layout_height="66dp"
             android:backgroundTint="#d3d3d3"
             android:background="@drawable/ic_baseline_cameraswitch_24" />
     </LinearLayout>
@@ -58,17 +66,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:paddingEnd="74dp"
+        android:paddingEnd="70dp"
         android:paddingStart="10dp"
         android:paddingBottom="19dp">
 
         <ImageButton
             android:id="@+id/lens_switch"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
             android:backgroundTint="#d3d3d3"
             android:background="@drawable/ic_baseline_switch_camera_24" />
     </LinearLayout>
-
 
 </FrameLayout>
