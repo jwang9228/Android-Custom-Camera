@@ -10,6 +10,10 @@
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/drawable/ic_shutter_normal.xml" value="0.139" />
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/drawable/ic_shutter_pressed.xml" value="0.139" />
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/layout/activity_main.xml" value="0.2760416666666667" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_cameraswitch_24.xml" value="0.1" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_raw_off_24.xml" value="0.173" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_raw_on_24.xml" value="0.173" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/layout/activity_main.xml" value="0.2033514492753623" />
       </map>
     </option>
   </component>

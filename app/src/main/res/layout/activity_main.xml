@@ -33,6 +33,7 @@
             android:textColor="#ff0000"
             android:textSize="24sp"
             android:layout_centerHorizontal="true"
+            android:layout_above="@id/capture_button"
             android:paddingBottom="3dp"
             android:visibility="invisible"/>
     </RelativeLayout>
@@ -42,6 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:paddingStart="74dp"
+        android:paddingEnd="10dp"
         android:paddingBottom="22dp">
 
         <ImageButton
@@ -57,6 +59,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:paddingEnd="74dp"
+        android:paddingStart="10dp"
         android:paddingBottom="19dp">
 
         <ImageButton

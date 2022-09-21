@@ -35,12 +35,12 @@ import java.util.Queue;
 import java.util.Set;
 
 // manages camera operations
-public class RawCameraManager {
+public class CustomCameraManager {
 
     private static final String TAG = "RawCameraManager";
     private final Context context;
     private final TextureView texture_view;
-    public RawCameraManager(Context context, TextureView view) {
+    public CustomCameraManager(Context context, TextureView view) {
         this.context = context;
         this.texture_view = view;
     }
@@ -540,7 +540,7 @@ public class RawCameraManager {
             if (raw_supported) {
                 raw_capture_request = camera_device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                 raw_capture_request.addTarget(raw_image_reader.getSurface());
-                //setManualParameters();
+                setManualParameters();
             }
             List<OutputConfiguration> configurations = new ArrayList<>();
             OutputConfiguration preview_config = new OutputConfiguration(preview_surface);
@@ -551,6 +551,7 @@ public class RawCameraManager {
             configurations.add(preview_config);
             if (raw_supported) {
                 OutputConfiguration raw_config = new OutputConfiguration(raw_image_reader.getSurface());
+                // if (hasPhysicalID()) raw_config.setPhysicalCameraId(physical_id);
                 configurations.add(raw_config);
             }
             SessionConfiguration camera_session_configuration = new SessionConfiguration(SessionConfiguration.SESSION_REGULAR,
@@ -620,18 +621,18 @@ public class RawCameraManager {
             raw_capture_request.addTarget(raw_image_reader.getSurface());
             raw_capture_request.set(CaptureRequest.LENS_FOCUS_DISTANCE, 0.0f);
 
-            raw_capture_request.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 50000L);
+            raw_capture_request.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 10000L);
             // ISO
-            raw_capture_request.set(CaptureRequest.SENSOR_SENSITIVITY, 300);
+            raw_capture_request.set(CaptureRequest.SENSOR_SENSITIVITY, 1000);
             // turning off modes
-            raw_capture_request.set(CaptureRequest.COLOR_CORRECTION_MODE, 0);
+            //raw_capture_request.set(CaptureRequest.COLOR_CORRECTION_MODE, 0);
             raw_capture_request.set(CaptureRequest.COLOR_CORRECTION_ABERRATION_MODE, 0);
             raw_capture_request.set(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE, 0);
             raw_capture_request.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0);
             raw_capture_request.set(CaptureRequest.CONTROL_AWB_MODE, 0);
             raw_capture_request.set(CaptureRequest.CONTROL_SCENE_MODE, 0);
             raw_capture_request.set(CaptureRequest.EDGE_MODE, 0);
-            raw_capture_request.set(CaptureRequest.HOT_PIXEL_MODE, 0);
+            //raw_capture_request.set(CaptureRequest.HOT_PIXEL_MODE, 0);
             raw_capture_request.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, 0);
             raw_capture_request.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, 0);
             raw_capture_request.set(CaptureRequest.NOISE_REDUCTION_MODE, 0);
