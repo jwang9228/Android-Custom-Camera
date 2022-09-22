@@ -29,10 +29,22 @@
 
         <com.marcinmoskala.arcseekbar.ArcSeekBar
             android:id="@+id/zoom_slider"
-            android:layout_width="182dp"
-            android:layout_height="54dp"
+            android:layout_width="184dp"
+            android:layout_height="55dp"
             android:layout_above="@id/capture_button"
-            android:layout_centerHorizontal="true" />
+            android:layout_centerHorizontal="true"
+            app:roundEdges="true"
+            app:thumb="@drawable/thumb"/>
+
+        <TextView
+            android:id="@+id/zoom_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/zoom_slider"
+            android:layout_centerHorizontal="true"
+            android:textSize="24sp"
+            android:textColor="#E6E6FA"
+            />
 
         <Chronometer
             android:id="@+id/chronometer"
@@ -76,6 +88,50 @@
             android:layout_height="68dp"
             android:backgroundTint="#d3d3d3"
             android:background="@drawable/ic_baseline_switch_camera_24" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:orientation="horizontal"
+        android:paddingTop="2dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            >
+            <ImageView
+                android:id="@+id/lens_facing"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:paddingTop="7dp"
+                >
+            </ImageView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Placeholder"
+                android:textColor="#F8F8FF"
+                android:textStyle="bold"
+                android:textSize="23sp">
+            </TextView>
+            <TextView
+                android:id="@+id/cam_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFAFA"
+                android:textStyle="bold"
+                android:textSize="22sp">
+            </TextView>
+        </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>

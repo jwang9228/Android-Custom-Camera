@@ -4,10 +4,10 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -26,7 +26,9 @@ public class MainActivity extends AppCompatActivity {
         requestPermissions();
         getSupportActionBar().hide();
 
-        camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView), findViewById(R.id.zoom_slider));
+        camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView),
+                findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
+                findViewById(R.id.lens_facing), findViewById(R.id.cam_id));
         ImageButton capture_button = findViewById(R.id.capture_button);
         ImageButton cam_facing_switch = findViewById(R.id.cam_facing_switch);
         ImageButton lens_switch = findViewById(R.id.lens_switch);
@@ -37,9 +39,7 @@ public class MainActivity extends AppCompatActivity {
             // if capture in sequence
             camera_manager.toggleRawCapture(chronometer);
         });
-
         cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());
-
         lens_switch.setOnClickListener(view -> camera_manager.switchLens());
     }
 

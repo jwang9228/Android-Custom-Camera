@@ -13,7 +13,10 @@ import android.media.*;
 import android.os.*;
 import android.util.*;
 import android.view.*;
+import android.view.animation.AlphaAnimation;
 import android.widget.Chronometer;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 
@@ -34,11 +37,18 @@ public class CustomCameraManager {
     private final Context context;
     private final TextureView texture_view;
     private final ArcSeekBar zoom_slider;
+    private final TextView zoom_value;
+    private final ImageView lens_facing_image;
+    private final TextView cam_id;
     private int progress_value = 0;
-    public CustomCameraManager(Context context, TextureView view, ArcSeekBar zoom_slider) {
+    public CustomCameraManager(Context context, TextureView view, ArcSeekBar zoom_slider,
+                               TextView zoom_value, ImageView lens_facing_image, TextView cam_id) {
         this.zoom_slider = zoom_slider;
         this.context = context;
         this.texture_view = view;
+        this.zoom_value = zoom_value;
+        this.lens_facing_image = lens_facing_image;
+        this.cam_id = cam_id;
     }
 
     private final ListenerManager listener_manager = new ListenerManager();
@@ -54,6 +64,7 @@ public class CustomCameraManager {
     private CameraCharacteristics camera_characteristics;
     private Range<Float> zoom_range;
     private List<Integer> zoom_ratios;
+    private double zoom_times;
     private int lens_facing;
     private boolean is_logical_multi_cam;
     private CaptureResult capture_result;
@@ -82,7 +93,6 @@ public class CustomCameraManager {
 
     // manage listeners
     private class ListenerManager {
-
         private TextureView.SurfaceTextureListener surface_texture_listener;
         private ImageReader.OnImageAvailableListener on_raw_image_available_listener;
 
@@ -350,6 +360,13 @@ public class CustomCameraManager {
 
             // determine lens facing, 0 for front, 1 for rear
             lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
+            // set appropriate lens image
+            if (lens_facing == 0) {
+                lens_facing_image.setImageResource(R.drawable.ic_baseline_camera_front_24);
+            }
+            else {
+                lens_facing_image.setImageResource(R.drawable.ic_baseline_camera_rear_24);
+            }
 
             zoom_range = camera_characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
             setupZoomRatios();
@@ -623,6 +640,55 @@ public class CustomCameraManager {
         }
     }
 
+    private void fadeOutZoomText(int duration) {
+        AlphaAnimation fade_out = new AlphaAnimation(1.0f , 0.0f ) ;
+        zoom_value.startAnimation(fade_out);
+        // ~2 seconds to fade out
+        fade_out.setDuration(duration);
+        fade_out.setFillAfter(true);
+    }
+
+    // initialize zoom slider and update UI elements for zoom (text, fade out properties)
+    private void initZoomSlider() {
+        Activity activity = (Activity) context;
+
+        int[] gradient_array = context.getResources().getIntArray(R.array.progressGradientColors);
+        zoom_slider.setProgressGradient(gradient_array);
+
+        // -1 because zoom ratio access starts at index 0
+        zoom_slider.setMaxProgress(zoom_ratios.size() - 1);
+        zoom_slider.setProgressWidth(12f);
+        zoom_slider.setOnProgressChangedListener(progress -> {
+            zoomTo(progress);
+            String zoom_str = "" + zoom_times + "x";
+            activity.runOnUiThread(() -> {
+                zoom_value.clearAnimation();
+                zoom_value.setText(zoom_str);
+                fadeOutZoomText(3000);
+            });
+        });
+        zoom_slider.setOnStopTrackingTouch(listener -> {
+            activity.runOnUiThread(() -> {
+                zoom_value.clearAnimation();
+                fadeOutZoomText(2700);
+            });
+        });
+        zoom_slider.setProgress(progress_value);
+    }
+
+    // sets either physical or logical ID, (physical higher precedence if available) on UI
+    private void getSessionID() {
+        Activity activity = (Activity) context;
+        String id_str;
+        if (is_logical_multi_cam) {
+            id_str = "ID: " + camera_id + "." + physical_id;
+        }
+        else {
+            id_str = "ID: " + camera_id;
+        }
+        activity.runOnUiThread(() -> cam_id.setText(id_str));
+    }
+
     // starts preview when camera is set up and connected
     private void startCameraPreview() {
         Log.d(TAG, "Attempting to start camera preview");
@@ -660,11 +726,9 @@ public class CustomCameraManager {
                 public void onReady(CameraCaptureSession session) {
                     capture_session = session;
                     // zoom must be set up after the camera is set up to adjust the progress bar available ratios
-                    // -1 because zoom ratio access starts at index 0
-                    zoom_slider.setMaxProgress(zoom_ratios.size() - 1);
-                    zoom_slider.setProgressWidth(10f);
-                    zoom_slider.setOnProgressChangedListener(progress -> zoomTo(progress));
-                    zoom_slider.setProgress(progress_value);
+                    initZoomSlider();
+                    // get ID for this session on UI
+                    getSessionID();
                     try {
                         capture_session.stopRepeating();
                         capture_session.setRepeatingRequest(preview_capture_request.build(),
@@ -801,7 +865,10 @@ public class CustomCameraManager {
         }
         Log.d(TAG, "Max zoom: " + getMaxZoom());
         Log.d(TAG, "Zoom factor: " + zoom_factor);
-        float zoom = zoom_ratios.get(zoom_factor)/100.0f;
+        float zoom = zoom_ratios.get(zoom_factor) / 100.0f;
+        // zoom value as magnification value, for example 1.0x, 6.3x, 7.9x
+        zoom_times = zoom_ratios.get(zoom_factor) / 100.0;
+
         try {
             capture_session.stopRepeating();
             preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoom);
