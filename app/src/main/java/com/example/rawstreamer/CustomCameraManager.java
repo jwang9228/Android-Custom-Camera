@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.common.util.concurrent.HandlerExecutor;
+import com.marcinmoskala.arcseekbar.ArcSeekBar;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -32,7 +33,10 @@ public class CustomCameraManager {
     private static final String TAG = "RawCameraManager";
     private final Context context;
     private final TextureView texture_view;
-    public CustomCameraManager(Context context, TextureView view) {
+    private final ArcSeekBar zoom_slider;
+    private int progress_value = 0;
+    public CustomCameraManager(Context context, TextureView view, ArcSeekBar zoom_slider) {
+        this.zoom_slider = zoom_slider;
         this.context = context;
         this.texture_view = view;
     }
@@ -48,6 +52,8 @@ public class CustomCameraManager {
 
     // request-related fields
     private CameraCharacteristics camera_characteristics;
+    private Range<Float> zoom_range;
+    private List<Integer> zoom_ratios;
     private int lens_facing;
     private boolean is_logical_multi_cam;
     private CaptureResult capture_result;
@@ -269,6 +275,69 @@ public class CustomCameraManager {
         }
     }
 
+    // sets up various zoom ratios depending on availability, called after extracting zoom_range
+    private void setupZoomRatios() {
+        float min_zoom = zoom_range.getLower();
+        float max_zoom = zoom_range.getUpper();
+
+        float zoom_max_min_ratio = max_zoom / min_zoom;
+        // set 20 steps per 2x factor
+        final int steps_per_2x_factor = 20;
+        int n_steps = (int)((steps_per_2x_factor *
+                Math.log(zoom_max_min_ratio + 1.0e-11)) / Math.log(2.0));
+
+        zoom_ratios = new ArrayList<>();
+
+        // add minimum zoom
+        zoom_ratios.add((int)(min_zoom * 100));
+        if (zoom_ratios.get(0) / 100.0f < min_zoom) {
+            // fix for rounding down to less than the min_zoom
+            // e.g. if min_zoom = 0.666, would have stored a zoom ratio of 66 which then would
+            // convert back to 0.66
+            zoom_ratios.set(0, zoom_ratios.get(0) + 1);
+        }
+
+        if(zoom_ratios.get(0) < 100 ) {
+            int n_steps_below_one = Math.max(1, n_steps/5);
+            // if the min zoom is < 1.0, we add multiple entries for 1x zoom, when using the zoom
+            // seekbar it's easy for the user to zoom to exactly 1x
+            int n_steps_one = Math.max(1, n_steps/20);
+
+            // add rest of zoom values < 1.0f
+            double zoom = min_zoom;
+            final double scale_factor = Math.pow(1.0f / min_zoom, 1.0/ (double) n_steps_below_one);
+            for(int i = 0; i < n_steps_below_one - 1; i++) {
+                zoom *= scale_factor;
+                int zoom_ratio = (int)(zoom * 100);
+                if(zoom_ratio > zoom_ratios.get(0)) {
+                    // on some devices (e.g., Pixel 6 Pro), the second entry would equal the first entry, due to the rounding fix above
+                    zoom_ratios.add(zoom_ratio);
+                }
+            }
+
+            // add values for 1.0f
+            for(int i = 0;i < n_steps_one; i++)
+                zoom_ratios.add(100);
+        }
+
+        final int n_steps_above_one = Math.max(1, n_steps - zoom_ratios.size());
+        // add zoom values > 1.0f
+        double zoom = 1.0f;
+        final double scale_factor = Math.pow(max_zoom, 1.0/ (double) n_steps_above_one);
+        for(int i = 0; i < n_steps_above_one - 1; i++) {
+            zoom *= scale_factor;
+            int zoom_ratio = (int)(zoom * 100);
+            zoom_ratios.add(zoom_ratio);
+        }
+
+        // add maximum zoom
+        int zoom_ratio = (int)(max_zoom*100);
+        zoom_ratios.add(zoom_ratio);
+
+        Log.d(TAG, "Number of zoom values: " + zoom_ratios.size());
+        Log.d(TAG, "Zoom Ratios: " + zoom_ratios);
+    }
+
     // sets up a camera with the current camera ID
     private void setupCamera(int width, int height) {
         camera_manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
@@ -281,6 +350,9 @@ public class CustomCameraManager {
 
             // determine lens facing, 0 for front, 1 for rear
             lens_facing = camera_characteristics.get(CameraCharacteristics.LENS_FACING);
+
+            zoom_range = camera_characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+            setupZoomRatios();
 
             // resolutions map
             StreamConfigurationMap map =
@@ -537,6 +609,20 @@ public class CustomCameraManager {
         }
     }
 
+    // given a zoom ratio finds the appropriate seekbar progress value
+    private void findProgressValue(float zoom_ratio) {
+        // find closest index in list of zoom values
+        int zoom_value = Math.round(zoom_ratio * 100);
+        Log.d(TAG, "Zoom value: " + zoom_value);
+        for (int i = 0; i < zoom_ratios.size(); i++) {
+            if (zoom_ratios.get(i) == zoom_value) {
+                Log.d(TAG, "Progress value found: " + i);
+                progress_value = i;
+                return;
+            }
+        }
+    }
+
     // starts preview when camera is set up and connected
     private void startCameraPreview() {
         Log.d(TAG, "Attempting to start camera preview");
@@ -550,12 +636,15 @@ public class CustomCameraManager {
                     physical_id = getFirstPhysicalID();
                 }
                 // logical multi-cam logic is dictated by zoom ratio, zoom determines which physical ID
-                Range<Float> zoom_range = camera_characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
                 if (physical_id.equals(getFirstPhysicalID())) {
-                    preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, 1.0f);
+                    // find which progress bar val associates with 1.0x
+                    findProgressValue(1.0f);
+                    Log.d(TAG, "Progress value x: " + progress_value);
                 }
                 else {
-                    preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, (zoom_range.getLower()) * 1.0f);
+                    // find which progress bar val associates with lowest zoom possible (widest FOV)
+                    progress_value = 0;
+                    Log.d(TAG, "Progress value y: " + progress_value);
                 }
             }
 
@@ -570,23 +659,16 @@ public class CustomCameraManager {
                 @Override
                 public void onReady(CameraCaptureSession session) {
                     capture_session = session;
+                    // zoom must be set up after the camera is set up to adjust the progress bar available ratios
+                    // -1 because zoom ratio access starts at index 0
+                    zoom_slider.setMaxProgress(zoom_ratios.size() - 1);
+                    zoom_slider.setProgressWidth(10f);
+                    zoom_slider.setOnProgressChangedListener(progress -> zoomTo(progress));
+                    zoom_slider.setProgress(progress_value);
                     try {
                         capture_session.stopRepeating();
                         capture_session.setRepeatingRequest(preview_capture_request.build(),
-                                new CameraCaptureSession.CaptureCallback() {
-                                    @Override
-                                    public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request, long timestamp, long frameNumber) {
-                                        super.onCaptureStarted(session, request, timestamp, frameNumber);
-                                    }
-
-                                    @Override
-                                    public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                                        super.onCaptureCompleted(session, request, result);
-                                        Utils.getCurrentResultSettings(result);
-                                        capture_result = result;
-                                    }
-                                    },
-                                background_handler);
+                                null, background_handler);
                     }
                     catch (Exception e) {
                         Log.d(TAG, "Set repeating request error: " + e);
@@ -702,6 +784,31 @@ public class CustomCameraManager {
         }
         catch (Exception e) {
             Log.e(TAG, "Error setting parameter: " + e);
+        }
+    }
+
+    public int getMaxZoom() {
+        return Math.round(zoom_range.getUpper()) * 10;
+    }
+
+    // sets zoom based on seekbar
+    public void zoomTo(int zoom_factor) {
+        if (zoom_factor < 0) {
+            zoom_factor = 0;
+        }
+        else if (zoom_factor > getMaxZoom()) {
+            zoom_factor = getMaxZoom();
+        }
+        Log.d(TAG, "Max zoom: " + getMaxZoom());
+        Log.d(TAG, "Zoom factor: " + zoom_factor);
+        float zoom = zoom_ratios.get(zoom_factor)/100.0f;
+        try {
+            capture_session.stopRepeating();
+            preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoom);
+            capture_session.setRepeatingRequest(preview_capture_request.build(), null, background_handler);
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error setting request when changing zoom: " + e);
         }
     }
 

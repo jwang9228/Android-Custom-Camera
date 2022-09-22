@@ -4,15 +4,18 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.marcinmoskala.arcseekbar.ArcSeekBar;
+import com.marcinmoskala.arcseekbar.ProgressListener;
+
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
     private CustomCameraManager camera_manager;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
 
@@ -23,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         requestPermissions();
         getSupportActionBar().hide();
 
-        camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView));
+        camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView), findViewById(R.id.zoom_slider));
         ImageButton capture_button = findViewById(R.id.capture_button);
         ImageButton cam_facing_switch = findViewById(R.id.cam_facing_switch);
         ImageButton lens_switch = findViewById(R.id.lens_switch);

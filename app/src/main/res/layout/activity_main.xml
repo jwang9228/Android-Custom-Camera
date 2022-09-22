@@ -28,9 +28,9 @@
             android:scaleType="fitCenter" />
 
         <com.marcinmoskala.arcseekbar.ArcSeekBar
-            android:id="@+id/zoom_bar"
-            android:layout_width="185dp"
-            android:layout_height="52dp"
+            android:id="@+id/zoom_slider"
+            android:layout_width="182dp"
+            android:layout_height="54dp"
             android:layout_above="@id/capture_button"
             android:layout_centerHorizontal="true" />
 
