@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Contacts;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
@@ -14,15 +15,25 @@ import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
-    private CustomCameraManager camera_manager;
+    private CameraController camera_controller;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        requestPermissions();
+        requestCameraPermissions();
 
+        UIManager ui_manager = new UIManager(this, findViewById(R.id.textureView),
+                findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
+                findViewById(R.id.cam_id), findViewById(R.id.lens_facing),
+                findViewById(R.id.capture_button), findViewById(R.id.cam_facing_switch),
+                findViewById(R.id.lens_switch), findViewById(R.id.chronometer),
+                findViewById(R.id.clock));
+
+        camera_controller = new CameraController(ui_manager);
+
+        /*
         camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView),
                 findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
                 findViewById(R.id.lens_facing), findViewById(R.id.cam_id));
@@ -40,30 +51,29 @@ public class MainActivity extends AppCompatActivity {
         cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());
         lens_switch.setOnClickListener(view -> camera_manager.switchLens());
         clock.setTimeZone(null);
-        clock.setFormat12Hour("h:mm:ss a");
+        clock.setFormat12Hour("h:mm a");
+
+         */
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        camera_manager.onResume();
+        camera_controller.onResume();
     }
 
     @Override
     protected void onPause() {
-        // free camera resource
-        camera_manager.onPause();
         super.onPause();
+        camera_controller.onPause();
     }
 
     // upon resume or initial startup, request for camera permissions
-    private void requestPermissions() {
+    private void requestCameraPermissions() {
         // always first request for camera permissions
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
-                    PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[] {Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION_RESULT);
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
+                PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION_RESULT);
         }
     }
 

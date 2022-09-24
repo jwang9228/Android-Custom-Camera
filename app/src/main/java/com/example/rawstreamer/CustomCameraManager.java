@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-// manages camera operations
+// manages camera operations, "model" in MVC structure
 public class CustomCameraManager {
 
     private static final String TAG = "RawCameraManager";
@@ -41,6 +41,11 @@ public class CustomCameraManager {
     private final ImageView lens_facing_image;
     private final TextView cam_id;
     private int progress_value = 0;
+
+    public CustomCameraManager() {
+
+    }
+
     public CustomCameraManager(Context context, TextureView view, ArcSeekBar zoom_slider,
                                TextView zoom_value, ImageView lens_facing_image, TextView cam_id) {
         this.zoom_slider = zoom_slider;
@@ -90,7 +95,7 @@ public class CustomCameraManager {
     private HandlerThread background_handler_thread;
     private Handler background_handler;
     private Toast toast;
-    private boolean zoom_init = false;
+    private boolean init_state = false;
 
     // manage listeners
     private class ListenerManager {
@@ -228,7 +233,7 @@ public class CustomCameraManager {
 
     // call in main activity's onResume() to set up surface texture listener
     public void onResume() {
-        zoom_init = false;
+        init_state = false;
         startBackgroundThread();
         // initialization step of the texture view before proceeding to set up preview and camera properties
         if (!texture_view.isAvailable()) {
@@ -247,15 +252,9 @@ public class CustomCameraManager {
         camera_manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         try {
             // permissions check for versions >= M
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // no issues if permission granted
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                        PackageManager.PERMISSION_GRANTED) {
-                    camera_manager.openCamera(camera_id, callback_manager.getCameraDeviceStateCallback(), background_handler);
-                }
-            }
-            // no permissions needed for versions < M
-            else {
+            // no issues if permission granted
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED) {
                 camera_manager.openCamera(camera_id, callback_manager.getCameraDeviceStateCallback(), background_handler);
             }
             Log.d(TAG, "Camera connected");
@@ -276,7 +275,7 @@ public class CustomCameraManager {
     public void onPause() {
         closeCamera();
         stopBackgroundThread();
-        zoom_init = false;
+        init_state = false;
     }
 
     // close camera to preserve resources
@@ -352,7 +351,7 @@ public class CustomCameraManager {
     }
 
     // sets up a camera with the current camera ID
-    private void setupCamera(int width, int height) {
+    public void setupCamera(int width, int height) {
         camera_manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         try {
             camera_characteristics =
@@ -386,6 +385,7 @@ public class CustomCameraManager {
             preview_size = Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     width, height);
             Log.d(TAG, "Preview size chosen: " + preview_size);
+            /*
 
             // check for RAW support here
             raw_supported = Utils.containsMode(camera_characteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES),
@@ -403,6 +403,8 @@ public class CustomCameraManager {
                 Log.d(TAG, "RAW size chosen: " + largest_raw_image_size);
                 raw_image_reader.setOnImageAvailableListener(listener_manager.getOnImageReaderAvailableListener(), background_handler);
             }
+
+             */
         }
         catch (Exception e) {
             Log.e(TAG, "Setup Camera Error: ", e);
@@ -672,7 +674,7 @@ public class CustomCameraManager {
             String zoom_str = "" + zoom_times + "x";
             activity.runOnUiThread(() -> {
                 zoom_value.clearAnimation();
-                if (zoom_init) zoom_value.setText(zoom_str);
+                if (init_state) zoom_value.setText(zoom_str);
                 fadeOutZoomText(3200);
             });
         });
@@ -682,7 +684,7 @@ public class CustomCameraManager {
                 fadeOutZoomText(2800);
             });
         });
-        zoom_init = true;
+        init_state = true;
     }
 
     // sets either physical or logical ID, (physical higher precedence if available) on UI
