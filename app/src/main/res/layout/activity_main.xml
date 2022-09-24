@@ -10,17 +10,49 @@
     <TextureView
         android:id="@+id/textureView"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="match_parent" />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="5dp">
+        android:paddingBottom="64dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/capture_button"
+            android:layout_toStartOf="@id/capture_button"
+            android:paddingEnd="12dp"
+            android:paddingBottom="18dp">
+
+            <ImageButton
+                android:id="@+id/cam_facing_switch"
+                android:layout_width="63dp"
+                android:layout_height="62dp"
+                android:background="@drawable/ic_baseline_cameraswitch_24"
+                android:backgroundTint="#d3d3d3" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@id/capture_button"
+            android:layout_toEndOf="@id/capture_button"
+            android:paddingStart="11dp"
+            android:paddingBottom="17dp">
+
+            <ImageButton
+                android:id="@+id/lens_switch"
+                android:layout_width="66dp"
+                android:layout_height="66dp"
+                android:backgroundTint="#d3d3d3"
+                android:background="@drawable/ic_baseline_switch_camera_24" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/capture_button"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="95dp"
+            android:layout_height="95dp"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:background="@drawable/ic_shutter"
@@ -29,12 +61,12 @@
 
         <com.marcinmoskala.arcseekbar.ArcSeekBar
             android:id="@+id/zoom_slider"
-            android:layout_width="184dp"
-            android:layout_height="55dp"
+            android:layout_width="186dp"
+            android:layout_height="56dp"
             android:layout_above="@id/capture_button"
             android:layout_centerHorizontal="true"
             app:roundEdges="true"
-            app:thumb="@drawable/thumb"/>
+            app:thumb="@drawable/thumb" />
 
         <TextView
             android:id="@+id/zoom_value"
@@ -42,53 +74,20 @@
             android:layout_height="wrap_content"
             android:layout_above="@id/zoom_slider"
             android:layout_centerHorizontal="true"
-            android:textSize="24sp"
             android:textColor="#E6E6FA"
-            />
+            android:textSize="24sp" />
 
         <Chronometer
             android:id="@+id/chronometer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_above="@id/capture_button"
+            android:layout_centerHorizontal="true"
+            android:paddingBottom="3dp"
             android:textColor="#ff0000"
             android:textSize="24sp"
-            android:layout_centerHorizontal="true"
-            android:layout_above="@id/capture_button"
-            android:paddingBottom="3dp"
-            android:visibility="invisible"/>
+            android:visibility="invisible" />
     </RelativeLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:paddingStart="70dp"
-        android:paddingEnd="10dp"
-        android:paddingBottom="22dp">
-
-        <ImageButton
-            android:id="@+id/cam_facing_switch"
-            android:layout_width="66dp"
-            android:layout_height="66dp"
-            android:backgroundTint="#d3d3d3"
-            android:background="@drawable/ic_baseline_cameraswitch_24" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:paddingEnd="70dp"
-        android:paddingStart="10dp"
-        android:paddingBottom="19dp">
-
-        <ImageButton
-            android:id="@+id/lens_switch"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:backgroundTint="#d3d3d3"
-            android:background="@drawable/ic_baseline_switch_camera_24" />
-    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -103,8 +102,8 @@
             >
             <ImageView
                 android:id="@+id/lens_facing"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:layout_width="54dp"
+                android:layout_height="54dp"
                 android:paddingTop="7dp"
                 >
             </ImageView>
@@ -113,25 +112,32 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/time"
+            android:orientation="vertical"
+            android:paddingTop="2dp">
+
+            <TextClock
+                android:id="@+id/clock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Placeholder"
                 android:textColor="#F8F8FF"
                 android:textStyle="bold"
-                android:textSize="23sp">
-            </TextView>
+                android:textSize="17sp" />
             <TextView
                 android:id="@+id/cam_id"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="#FFFAFA"
                 android:textStyle="bold"
-                android:textSize="22sp">
+                android:textSize="20sp">
             </TextView>
         </LinearLayout>
     </LinearLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        />
 
 </FrameLayout>

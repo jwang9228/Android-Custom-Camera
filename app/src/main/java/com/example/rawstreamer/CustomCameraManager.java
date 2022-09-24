@@ -664,13 +664,13 @@ public class CustomCameraManager {
             activity.runOnUiThread(() -> {
                 zoom_value.clearAnimation();
                 zoom_value.setText(zoom_str);
-                fadeOutZoomText(3000);
+                fadeOutZoomText(3200);
             });
         });
         zoom_slider.setOnStopTrackingTouch(listener -> {
             activity.runOnUiThread(() -> {
                 zoom_value.clearAnimation();
-                fadeOutZoomText(2700);
+                fadeOutZoomText(2800);
             });
         });
         zoom_slider.setProgress(progress_value);
@@ -681,7 +681,7 @@ public class CustomCameraManager {
         Activity activity = (Activity) context;
         String id_str;
         if (is_logical_multi_cam) {
-            id_str = "ID: " + camera_id + "." + physical_id;
+            id_str = "ID: " + camera_id + " | " + physical_id;
         }
         else {
             id_str = "ID: " + camera_id;
@@ -863,14 +863,13 @@ public class CustomCameraManager {
         else if (zoom_factor > getMaxZoom()) {
             zoom_factor = getMaxZoom();
         }
-        Log.d(TAG, "Max zoom: " + getMaxZoom());
-        Log.d(TAG, "Zoom factor: " + zoom_factor);
         float zoom = zoom_ratios.get(zoom_factor) / 100.0f;
         // zoom value as magnification value, for example 1.0x, 6.3x, 7.9x
         zoom_times = zoom_ratios.get(zoom_factor) / 100.0;
 
         try {
             capture_session.stopRepeating();
+            Log.d(TAG, "Zoom chosen: " + zoom);
             preview_capture_request.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoom);
             capture_session.setRepeatingRequest(preview_capture_request.build(), null, background_handler);
         }

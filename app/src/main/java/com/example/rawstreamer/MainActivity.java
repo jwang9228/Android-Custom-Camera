@@ -5,14 +5,13 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
+import android.widget.TextClock;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
-import com.marcinmoskala.arcseekbar.ArcSeekBar;
-import com.marcinmoskala.arcseekbar.ProgressListener;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,7 +23,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         requestPermissions();
-        getSupportActionBar().hide();
 
         camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView),
                 findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
@@ -33,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton cam_facing_switch = findViewById(R.id.cam_facing_switch);
         ImageButton lens_switch = findViewById(R.id.lens_switch);
         Chronometer chronometer = findViewById(R.id.chronometer);
+        TextClock clock = findViewById(R.id.clock);
 
         capture_button.setOnClickListener(view -> {
             // tell camera manager to start raw capture if not started, or cut raw capture
@@ -41,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
         });
         cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());
         lens_switch.setOnClickListener(view -> camera_manager.switchLens());
+        clock.setTimeZone(null);
+        clock.setFormat12Hour("hh:mm:ss a");
     }
 
     @Override
