@@ -90,6 +90,7 @@ public class CustomCameraManager {
     private HandlerThread background_handler_thread;
     private Handler background_handler;
     private Toast toast;
+    private boolean zoom_init = false;
 
     // manage listeners
     private class ListenerManager {
@@ -227,6 +228,7 @@ public class CustomCameraManager {
 
     // call in main activity's onResume() to set up surface texture listener
     public void onResume() {
+        zoom_init = false;
         startBackgroundThread();
         // initialization step of the texture view before proceeding to set up preview and camera properties
         if (!texture_view.isAvailable()) {
@@ -274,6 +276,7 @@ public class CustomCameraManager {
     public void onPause() {
         closeCamera();
         stopBackgroundThread();
+        zoom_init = false;
     }
 
     // close camera to preserve resources
@@ -370,6 +373,11 @@ public class CustomCameraManager {
 
             zoom_range = camera_characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
             setupZoomRatios();
+
+            Range<Integer>[] fps_range = camera_characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+            for (Range<Integer> range : fps_range) {
+                Log.d(TAG, "Range: " + range.getLower() + ", " + range.getUpper());
+            }
 
             // resolutions map
             StreamConfigurationMap map =
@@ -658,12 +666,13 @@ public class CustomCameraManager {
         // -1 because zoom ratio access starts at index 0
         zoom_slider.setMaxProgress(zoom_ratios.size() - 1);
         zoom_slider.setProgressWidth(12f);
+        zoom_slider.setProgress(progress_value);
         zoom_slider.setOnProgressChangedListener(progress -> {
             zoomTo(progress);
             String zoom_str = "" + zoom_times + "x";
             activity.runOnUiThread(() -> {
                 zoom_value.clearAnimation();
-                zoom_value.setText(zoom_str);
+                if (zoom_init) zoom_value.setText(zoom_str);
                 fadeOutZoomText(3200);
             });
         });
@@ -673,7 +682,7 @@ public class CustomCameraManager {
                 fadeOutZoomText(2800);
             });
         });
-        zoom_slider.setProgress(progress_value);
+        zoom_init = true;
     }
 
     // sets either physical or logical ID, (physical higher precedence if available) on UI
@@ -705,12 +714,10 @@ public class CustomCameraManager {
                 if (physical_id.equals(getFirstPhysicalID())) {
                     // find which progress bar val associates with 1.0x
                     findProgressValue(1.0f);
-                    Log.d(TAG, "Progress value x: " + progress_value);
                 }
                 else {
                     // find which progress bar val associates with lowest zoom possible (widest FOV)
                     progress_value = 0;
-                    Log.d(TAG, "Progress value y: " + progress_value);
                 }
             }
 

@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Window;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.TextClock;
@@ -41,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
         cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());
         lens_switch.setOnClickListener(view -> camera_manager.switchLens());
         clock.setTimeZone(null);
-        clock.setFormat12Hour("hh:mm:ss a");
+        clock.setFormat12Hour("h:mm:ss a");
     }
 
     @Override

@@ -14,21 +14,50 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/nav_bar"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_alignParentBottom="true" />
+
+        <!--https://gist.github.com/lopspower/03fb1cc0ac9f32ef38f4-->
+        <LinearLayout
+            android:id="@+id/filler_1"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_above="@id/nav_bar"
+            android:background="@drawable/background_gradient_1"
+            android:orientation="horizontal">
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_above="@id/filler_1"
+            android:background="@drawable/background_gradient_2" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="64dp">
+        android:paddingBottom="60dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignBottom="@id/capture_button"
             android:layout_toStartOf="@id/capture_button"
-            android:paddingEnd="12dp"
+            android:paddingEnd="15dp"
             android:paddingBottom="18dp">
 
             <ImageButton
                 android:id="@+id/cam_facing_switch"
-                android:layout_width="63dp"
-                android:layout_height="62dp"
+                android:layout_width="61dp"
+                android:layout_height="59dp"
                 android:background="@drawable/ic_baseline_cameraswitch_24"
                 android:backgroundTint="#d3d3d3" />
         </LinearLayout>
@@ -38,13 +67,13 @@
             android:layout_height="wrap_content"
             android:layout_alignBottom="@id/capture_button"
             android:layout_toEndOf="@id/capture_button"
-            android:paddingStart="11dp"
-            android:paddingBottom="17dp">
+            android:paddingStart="14dp"
+            android:paddingBottom="15dp">
 
             <ImageButton
                 android:id="@+id/lens_switch"
-                android:layout_width="66dp"
-                android:layout_height="66dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
                 android:backgroundTint="#d3d3d3"
                 android:background="@drawable/ic_baseline_switch_camera_24" />
         </LinearLayout>
@@ -61,8 +90,8 @@
 
         <com.marcinmoskala.arcseekbar.ArcSeekBar
             android:id="@+id/zoom_slider"
-            android:layout_width="186dp"
-            android:layout_height="56dp"
+            android:layout_width="188dp"
+            android:layout_height="54dp"
             android:layout_above="@id/capture_button"
             android:layout_centerHorizontal="true"
             app:roundEdges="true"
@@ -75,7 +104,7 @@
             android:layout_above="@id/zoom_slider"
             android:layout_centerHorizontal="true"
             android:textColor="#E6E6FA"
-            android:textSize="24sp" />
+            android:textSize="22sp" />
 
         <Chronometer
             android:id="@+id/chronometer"
@@ -89,6 +118,42 @@
             android:visibility="invisible" />
     </RelativeLayout>
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@color/black"
+        android:paddingTop="10dp">
+
+        <ImageButton
+            android:id="@+id/settings_dropdown"
+            android:layout_width="50dp"
+            android:layout_height="44dp"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/ic_baseline_keyboard_arrow_down_24" />
+
+        <TextView
+            android:id="@+id/right_placeholder"
+            android:layout_width="10dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="9dp"
+            android:layout_toStartOf="@id/right_placeholder"
+
+            >
+            <TextClock
+                android:id="@+id/clock"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textColor="#F8F8FF"
+                android:textStyle="bold"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+    </RelativeLayout>
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -96,32 +161,24 @@
         android:orientation="horizontal"
         android:paddingTop="2dp">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             >
+
             <ImageView
                 android:id="@+id/lens_facing"
                 android:layout_width="54dp"
                 android:layout_height="54dp"
-                android:paddingTop="7dp"
-                >
-            </ImageView>
-        </LinearLayout>
+                android:paddingTop="7dp" />
+
+        </RelativeLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="2dp">
-
-            <TextClock
-                android:id="@+id/clock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#F8F8FF"
-                android:textStyle="bold"
-                android:textSize="17sp" />
             <TextView
                 android:id="@+id/cam_id"
                 android:layout_width="wrap_content"
@@ -132,12 +189,5 @@
             </TextView>
         </LinearLayout>
     </LinearLayout>
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/nav_bar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_gravity="bottom"
-        />
 
 </FrameLayout>
