@@ -2,13 +2,8 @@ package com.example.rawstreamer;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Contacts;
 import android.view.View;
-import android.widget.Chronometer;
-import android.widget.ImageButton;
-import android.widget.TextClock;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -26,34 +21,19 @@ public class MainActivity extends AppCompatActivity {
 
         UIManager ui_manager = new UIManager(this, findViewById(R.id.textureView),
                 findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
-                findViewById(R.id.cam_id), findViewById(R.id.lens_facing),
-                findViewById(R.id.capture_button), findViewById(R.id.cam_facing_switch),
-                findViewById(R.id.lens_switch), findViewById(R.id.chronometer),
-                findViewById(R.id.clock));
+                findViewById(R.id.lens_facing), findViewById(R.id.capture_button),
+                findViewById(R.id.cam_facing_switch), findViewById(R.id.lens_switch),
+                findViewById(R.id.chronometer), findViewById(R.id.clock));
 
         camera_controller = new CameraController(ui_manager);
 
-        /*
-        camera_manager = new CustomCameraManager(this, findViewById(R.id.textureView),
-                findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
-                findViewById(R.id.lens_facing), findViewById(R.id.cam_id));
-        ImageButton capture_button = findViewById(R.id.capture_button);
-        ImageButton cam_facing_switch = findViewById(R.id.cam_facing_switch);
-        ImageButton lens_switch = findViewById(R.id.lens_switch);
-        Chronometer chronometer = findViewById(R.id.chronometer);
-        TextClock clock = findViewById(R.id.clock);
-
-        capture_button.setOnClickListener(view -> {
-            // tell camera manager to start raw capture if not started, or cut raw capture
-            // if capture in sequence
-            camera_manager.toggleRawCapture(chronometer);
-        });
-        cam_facing_switch.setOnClickListener(view -> camera_manager.switchFacing());
-        lens_switch.setOnClickListener(view -> camera_manager.switchLens());
-        clock.setTimeZone(null);
-        clock.setFormat12Hour("h:mm a");
-
-         */
+        try {
+            Class.forName("dalvik.system.CloseGuard")
+                    .getMethod("setEnabled", boolean.class)
+                    .invoke(null, true);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

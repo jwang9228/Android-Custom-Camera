@@ -122,28 +122,27 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:background="@color/black"
-        android:paddingTop="10dp">
+        android:paddingTop="7dp">
 
         <ImageButton
             android:id="@+id/settings_dropdown"
-            android:layout_width="50dp"
+            android:layout_width="48dp"
             android:layout_height="44dp"
             android:layout_centerHorizontal="true"
             android:background="@drawable/ic_baseline_keyboard_arrow_down_24" />
 
         <TextView
-            android:id="@+id/right_placeholder"
+            android:id="@+id/left_placeholder"
             android:layout_width="10dp"
             android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"/>
+            android:layout_alignParentStart="true"/>
 
         <LinearLayout
+            android:id="@+id/clock_layout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingTop="9dp"
-            android:layout_toStartOf="@id/right_placeholder"
-
-            >
+            android:layout_toEndOf="@id/left_placeholder">
             <TextClock
                 android:id="@+id/clock"
                 android:layout_width="wrap_content"
@@ -153,41 +152,17 @@
                 android:textSize="18sp" />
         </LinearLayout>
 
-    </RelativeLayout>
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:orientation="horizontal"
-        android:paddingTop="2dp">
-
-        <RelativeLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            >
-
-            <ImageView
-                android:id="@+id/lens_facing"
-                android:layout_width="54dp"
-                android:layout_height="25dp"
-                android:paddingTop="7dp" />
-
-        </RelativeLayout>
-
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingTop="2dp">
-            <TextView
-                android:id="@+id/cam_id"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#FFFAFA"
-                android:textStyle="bold"
-                android:textSize="20sp">
-            </TextView>
+            android:paddingTop="15dp"
+            android:layout_toEndOf="@id/clock_layout">
+            <ImageView
+                android:id="@+id/lens_facing"
+                android:layout_width="28dp"
+                android:layout_height="15dp" />
         </LinearLayout>
-    </LinearLayout>
+
+    </RelativeLayout>
 
 </FrameLayout>
