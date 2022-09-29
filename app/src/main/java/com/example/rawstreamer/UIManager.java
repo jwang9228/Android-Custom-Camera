@@ -1,7 +1,10 @@
 package com.example.rawstreamer;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.net.wifi.WifiManager;
 import android.view.TextureView;
 import android.view.animation.AlphaAnimation;
 import android.widget.Chronometer;
@@ -29,11 +32,13 @@ public class UIManager {
     private final ImageButton lens_switch;
     private final TextClock clock;
     private final Activity activity;
+    private final ImageView wifi_state;
+    private BroadcastReceiver wifi_state_receiver;
 
     public UIManager(Context context, TextureView texture_view, ArcSeekBar zoom_slider,
                      TextView zoom_value, ImageView lens_facing_image,
                      ImageButton capture_button, ImageButton cam_facing_switch, ImageButton lens_switch,
-                     Chronometer chronometer, TextClock clock) {
+                     Chronometer chronometer, TextClock clock, ImageView wifi_state) {
         this.context = context;
         this.activity = (Activity) context;
         this.texture_view = texture_view;
@@ -45,6 +50,11 @@ public class UIManager {
         this.lens_switch = lens_switch;
         this.chronometer = chronometer;
         this.clock = clock;
+        this.wifi_state = wifi_state;
+    }
+
+    public BroadcastReceiver getWifiStateReceiver() {
+        return this.wifi_state_receiver;
     }
 
     // initializing non-camera related elements don't need the camera manager, can be initialized
@@ -53,8 +63,22 @@ public class UIManager {
         activity.runOnUiThread(() -> {
             clock.setTimeZone(null);
             clock.setFormat12Hour("h:mm a");
+            wifi_state_receiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    int wifi_state_extra = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,
+                            WifiManager.WIFI_STATE_UNKNOWN);
+                    switch (wifi_state_extra) {
+                        case WifiManager.WIFI_STATE_ENABLED:
+                            wifi_state.setBackgroundResource(R.drawable.ic_baseline_wifi_24);
+                            break;
+                        case WifiManager.WIFI_STATE_DISABLED:
+                            wifi_state.setBackgroundResource(R.drawable.ic_baseline_wifi_off_24);
+                            break;
+                    }
+                }
+            };
         });
-        // TODO: set wifi and battery status here
     }
 
     public void disableUIActions() {
