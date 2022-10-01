@@ -9,6 +9,8 @@ import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 
+import androidx.viewpager.widget.ViewPager;
+
 import com.marcinmoskala.arcseekbar.ArcSeekBar;
 
 // controller that receives events from the view and requests camera manager to handle
@@ -28,6 +30,10 @@ public class CameraController {
     private TextureView.SurfaceTextureListener surface_texture_listener;
     private CameraDevice.StateCallback camera_device_state_callback;
     private CameraCaptureSession.StateCallback session_callback;
+    private CameraCaptureSession capture_session;
+    private int quick_settings_position = 2;
+    private int set_fps = 30;
+    private String set_res = "4K";
 
     public CameraController(UIManager ui_manager) {
         this.ui_manager = ui_manager;
@@ -41,6 +47,7 @@ public class CameraController {
                 ui_manager.disableUIActions();
                 int lens_facing = custom_camera_manager.switchFacing(camera_device_state_callback, background_handler);
                 ui_manager.setLensFacingImage(lens_facing);
+                setupQuickSettings();
                 ui_manager.enableUIActions();
             }
         });
@@ -52,7 +59,65 @@ public class CameraController {
             public void onClick(View view) {
                 ui_manager.disableUIActions();
                 custom_camera_manager.switchLens(camera_device_state_callback, background_handler);
+                setupQuickSettings();
                 ui_manager.enableUIActions();
+            }
+        });
+    }
+
+    // get FPS range and set appropriate buttons for FPS event
+    private void fpsClickEvent() {
+        boolean has30FPS = custom_camera_manager.findBest30FPS();
+        boolean has60FPS = custom_camera_manager.findBest60FPS();
+        // if both 30 and 60 FPS options available, then the FPS can be switched
+        if (has30FPS && has60FPS) {
+            // toggle between 30 & 60
+            if (set_fps == 30) {
+                set_fps = 60;
+                ui_manager.setCarouselFPS(60, quick_settings_position);
+                custom_camera_manager.setFPS(60, capture_session, background_handler);
+            }
+            else {
+                set_fps = 30;
+                ui_manager.setCarouselFPS(30, quick_settings_position);
+                custom_camera_manager.setFPS(30, capture_session, background_handler);
+            }
+        }
+    }
+
+    // get available resolutions and set appropriate buttons for resolution event
+    private void resolutionClickEvent() {
+        if (set_res.equals("4K")) {
+            set_res = "HD";
+            ui_manager.setCarouselRes("HD", quick_settings_position);
+        }
+        else {
+            set_res = "4K";
+            ui_manager.setCarouselRes("4K", quick_settings_position);
+        }
+    }
+
+    // query quick settings and adjust UI and listeners accordingly to available settings
+    private void setupQuickSettings() {
+        // set up by tuning settings to default
+        //ui_manager.setCarouselFPS(30, quick_settings_position);
+        //ui_manager.setCarouselRes("4K", quick_settings_position);
+
+        // different on click events depending on which quick setting selected
+        ui_manager.getSettingButton().setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // TODO: disable ui actions, persistent store settings so they don't reset
+                switch (quick_settings_position) {
+                    case 1:
+                        Log.d(TAG, "FPS event clicked");
+                        fpsClickEvent();
+                        break;
+                    case 2:
+                        Log.d(TAG, "Resolution event clicked");
+                        resolutionClickEvent();
+                        break;
+                }
             }
         });
     }
@@ -66,6 +131,7 @@ public class CameraController {
                 custom_camera_manager.openCamera(camera_device_state_callback, background_handler);
                 setupCamFacingSwitch();
                 setupLensSwitch();
+                setupQuickSettings();
             }
             public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {}
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {return false;}
@@ -119,6 +185,7 @@ public class CameraController {
 
             @Override
             public void onReady(CameraCaptureSession session) {
+                capture_session = session;
                 // zoom must be set up after the camera is set up to adjust the progress bar available ratios
                 initZoomSlider(session);
                 try {
@@ -149,9 +216,25 @@ public class CameraController {
         ui_manager.setLensFacingImage(lens_facing_status);
     }
 
+    private void initCarouselListener() {
+        ui_manager.getCarousel().addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {}
+
+            @Override
+            public void onPageSelected(int position) {
+                quick_settings_position = position;
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {}
+        });
+    }
+
     // call in main activity's onResume() to set up listeners and initialize the entire program state
     public void onResume() {
         ui_manager.initNonCameraElements();
+        initCarouselListener();
         init_state = false;
         startBackgroundThread();
 

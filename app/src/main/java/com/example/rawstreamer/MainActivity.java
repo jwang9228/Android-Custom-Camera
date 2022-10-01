@@ -26,11 +26,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         requestCameraPermissions();
 
-        this.ui_manager = new UIManager(this, findViewById(R.id.textureView),
-                findViewById(R.id.zoom_slider), findViewById(R.id.zoom_value),
-                findViewById(R.id.lens_facing), findViewById(R.id.capture_button),
-                findViewById(R.id.cam_facing_switch), findViewById(R.id.lens_switch),
-                findViewById(R.id.chronometer), findViewById(R.id.clock), findViewById(R.id.wifi_state));
+        this.ui_manager = new UIManager(this);
 
         camera_controller = new CameraController(ui_manager);
 

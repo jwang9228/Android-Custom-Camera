@@ -10,8 +10,12 @@
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/drawable/ic_shutter_normal.xml" value="0.139" />
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/drawable/ic_shutter_pressed.xml" value="0.139" />
         <entry key="..\:/Users/jwang/AndroidStudioProjects/RAWstreamer/app/src/main/res/layout/activity_main.xml" value="0.2760416666666667" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable-v24/background_gradient_1.xml" value="0.142" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable-v24/background_gradient_2.xml" value="0.173" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable-v24/thumb.xml" value="0.147" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_30fps_24.xml" value="0.116" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_4k_24.xml" value="0.1565" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_60fps_24.xml" value="0.1565" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_battery_3_bar_24.xml" value="0.167" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_battery_4_bar_24.xml" value="0.167" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_battery_5_bar_24.xml" value="0.167" />
@@ -20,8 +24,13 @@
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_camera_front_24.xml" value="0.158" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_camera_rear_24.xml" value="0.147" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_cameraswitch_24.xml" value="0.1" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_exposure_24.xml" value="0.116" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_hd_24.xml" value="0.1565" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_raw_off_24.xml" value="0.173" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_raw_on_24.xml" value="0.173" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_settings_26.xml" value="0.1565" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_settings_30.xml" value="0.116" />
+        <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_baseline_wifi_24.xml" value="0.1565" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/drawable/ic_shutter_pressed.xml" value="0.173" />
         <entry key="..\:/Users/jwang/Documents/GitHub/Android-Custom-Camera/app/src/main/res/layout/activity_main.xml" value="0.2033514492753623" />
       </map>

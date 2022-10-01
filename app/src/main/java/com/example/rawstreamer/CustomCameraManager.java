@@ -41,8 +41,11 @@ public class CustomCameraManager {
     private int lens_facing;
     private boolean is_logical_multi_cam;
     private CaptureRequest.Builder preview_capture_request;
+    private CameraCaptureSession.CaptureCallback capture_callback;
     private Surface preview_surface;
     private Size preview_size;
+    private Range<Integer> thirty_fps_range;
+    private Range<Integer> sixty_fps_range;
 
     // file management fields
     private final FileManager file_manager = new FileManager();
@@ -181,6 +184,7 @@ public class CustomCameraManager {
 
             preview_size = Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     width, height);
+            preview_size = new Size(3840, 2160);
             Log.d(TAG, "Preview size chosen: " + preview_size);
             return lens_facing;
         }
@@ -419,11 +423,27 @@ public class CustomCameraManager {
 
     public int getMaxProgress() {return zoom_ratios.size() - 1;}
 
+    private void initCaptureCallback() {
+        capture_callback = new CameraCaptureSession.CaptureCallback() {
+            @Override
+            public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request, long timestamp, long frameNumber) {
+                super.onCaptureStarted(session, request, timestamp, frameNumber);
+            }
+
+            @Override
+            public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                super.onCaptureCompleted(session, request, result);
+                //Log.d(TAG, "Result FPS: " + result.get(CaptureResult.CONTROL_AE_TARGET_FPS_RANGE));
+            }
+        };
+    }
+
     public void setRepeatingRequest(CameraCaptureSession session, Handler handler) {
         try {
             session.stopRepeating();
+            initCaptureCallback();
             session.setRepeatingRequest(preview_capture_request.build(),
-                    null, handler);
+                    capture_callback, handler);
         }
         catch (Exception e) {
             Log.e(TAG, "Error setting repeating request: " + e);
@@ -471,8 +491,51 @@ public class CustomCameraManager {
             setRepeatingRequest(capture_session, background_handler);
         }
         catch (Exception e) {
-            Log.d(TAG, "Error memory: " + camera_device);
             Log.e(TAG, "Error setting request when changing zoom: " + e);
+        }
+    }
+
+    // determines if there is a 30 FPS range and sets the best range
+    public boolean findBest30FPS() {
+        boolean has_30 = false;
+        // find optimal 30 FPS range if possible, ex: [30, 30] more optimal than [15, 30]
+        for (Range<Integer> fps_range : camera_characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)) {
+            if (fps_range.getLower() == 30 || fps_range.getUpper() == 30) {
+                thirty_fps_range = fps_range;
+                has_30 = true;
+            }
+        }
+        return has_30;
+    }
+
+    // determines if there is a 60 FPS range and sets the best range
+    public boolean findBest60FPS() {
+        boolean has_60 = false;
+        // find optimal 60 FPS range if possible, ex: [60, 60] more optimal than [30, 60]
+        for (Range<Integer> fps_range : camera_characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)) {
+            if (fps_range.getLower() == 60 || fps_range.getUpper() == 60) {
+                sixty_fps_range = fps_range;
+                has_60 = true;
+            }
+        }
+        return has_60;
+    }
+
+    // sets current session's FPS to closest possible FPS range of request
+    public void setFPS(int fps, CameraCaptureSession capture_session, Handler background_handler) {
+        if (fps == 30) {
+            Log.d(TAG, "FPS set to: " + thirty_fps_range);
+            preview_capture_request.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, thirty_fps_range);
+        }
+        else {
+            Log.d(TAG, "FPS set to: " + sixty_fps_range);
+            preview_capture_request.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, sixty_fps_range);
+        }
+        try {
+            setRepeatingRequest(capture_session, background_handler);
+        }
+        catch (Exception e) {
+            Log.e(TAG, "Error setting fps request: " + e);
         }
     }
 }

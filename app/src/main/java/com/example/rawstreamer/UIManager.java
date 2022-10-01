@@ -4,16 +4,29 @@ import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.wifi.WifiManager;
+import android.util.Log;
 import android.view.TextureView;
+import android.view.View;
 import android.view.animation.AlphaAnimation;
+import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextClock;
 import android.widget.TextView;
 
+import androidx.constraintlayout.helper.widget.Carousel;
+import androidx.viewpager.widget.ViewPager;
+
 import com.marcinmoskala.arcseekbar.ArcSeekBar;
+import com.wajahatkarim3.easyflipview.EasyFlipView;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import in.goodiebag.carouselpicker.CarouselPicker;
 
 /*
 container class for managing UI elements on screen that require the camera manager
@@ -21,6 +34,7 @@ to get data from, considered the "view" that interacts with the MainActivity and
 used by the camera controller
  */
 public class UIManager {
+    private static final String TAG = "UIManager";
     private final Context context;
     private final TextureView texture_view;
     private final ArcSeekBar zoom_slider;
@@ -34,23 +48,28 @@ public class UIManager {
     private final Activity activity;
     private final ImageView wifi_state;
     private BroadcastReceiver wifi_state_receiver;
+    private final CarouselPicker carousel_picker;
+    private final EasyFlipView settings_dropdown;
+    private final Button setting_button;
+    private List<CarouselPicker.PickerItem> settings_items;
+    private CarouselPicker.CarouselViewAdapter adapter;
 
-    public UIManager(Context context, TextureView texture_view, ArcSeekBar zoom_slider,
-                     TextView zoom_value, ImageView lens_facing_image,
-                     ImageButton capture_button, ImageButton cam_facing_switch, ImageButton lens_switch,
-                     Chronometer chronometer, TextClock clock, ImageView wifi_state) {
+    public UIManager(Context context) {
         this.context = context;
         this.activity = (Activity) context;
-        this.texture_view = texture_view;
-        this.zoom_slider = zoom_slider;
-        this.zoom_value = zoom_value;
-        this.lens_facing_image = lens_facing_image;
-        this.capture_button = capture_button;
-        this.cam_facing_switch = cam_facing_switch;
-        this.lens_switch = lens_switch;
-        this.chronometer = chronometer;
-        this.clock = clock;
-        this.wifi_state = wifi_state;
+        this.texture_view = activity.findViewById(R.id.textureView);
+        this.zoom_slider = activity.findViewById(R.id.zoom_slider);
+        this.zoom_value = activity.findViewById(R.id.zoom_value);
+        this.lens_facing_image = activity.findViewById(R.id.lens_facing);
+        this.capture_button = activity.findViewById(R.id.capture_button);
+        this.cam_facing_switch = activity.findViewById(R.id.cam_facing_switch);
+        this.lens_switch = activity.findViewById(R.id.lens_switch);
+        this.chronometer = activity.findViewById(R.id.chronometer);
+        this.clock = activity.findViewById(R.id.clock);
+        this.wifi_state = activity.findViewById(R.id.wifi_state);
+        this.carousel_picker = activity.findViewById(R.id.carousel);
+        this.settings_dropdown = activity.findViewById(R.id.settings_dropdown);
+        this.setting_button = activity.findViewById(R.id.setting_button);
     }
 
     public BroadcastReceiver getWifiStateReceiver() {
@@ -78,11 +97,71 @@ public class UIManager {
                     }
                 }
             };
+            createCarouselPicker();
+            initSettingsDropdownListener();
         });
+    }
+
+    // transition for carousel hide/expose
+    private void initSettingsDropdownListener() {
+        settings_dropdown.setOnFlipListener(new EasyFlipView.OnFlipAnimationListener() {
+            @Override
+            public void onViewFlipCompleted(EasyFlipView flipView, EasyFlipView.FlipState newCurrentSide)
+            {
+                //TODO: disableUiActions() when doing tasks
+            }
+        });
+    }
+
+    // called after updates to the carousel
+    private void reInitCarousel(int current_position) {
+        adapter.setTextColor(Color.parseColor("#F8F8FF"));
+        carousel_picker.setAdapter(adapter);
+        // set initial position to middle of the carousel
+        carousel_picker.setCurrentItem(current_position, false);
+    }
+
+    // sets carousel's FPS image to 30 / 60
+    public void setCarouselFPS(int fps, int current_position) {
+        if (fps == 30) {
+            settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_30fps_24));
+            reInitCarousel(current_position);
+        }
+        else {
+            settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_60fps_24));
+            reInitCarousel(current_position);
+        }
+    }
+
+    // sets carousel's resolution image to HD / 4K
+    public void setCarouselRes(String res, int current_position) {
+        if (res.equals("4K")) {
+            settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_4k_24));
+            reInitCarousel(current_position);
+        }
+        else {
+            settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_hd_24));
+            reInitCarousel(current_position);
+        }
+    }
+
+    // carousel picker for common camera settings
+    private void createCarouselPicker() {
+        // 5 items
+        settings_items = new ArrayList<>();
+        settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_exposure_24));
+
+        settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_30fps_24));
+        settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_4k_24));
+        settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_settings_30));
+        settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_settings_30));
+        adapter = new CarouselPicker.CarouselViewAdapter(context, settings_items, 0);
+        reInitCarousel(2);
     }
 
     public void disableUIActions() {
         // disable clicks on all clickable elements
+        setting_button.setEnabled(false);
         lens_switch.setEnabled(false);
         cam_facing_switch.setEnabled(false);
         capture_button.setEnabled(false);
@@ -91,6 +170,7 @@ public class UIManager {
 
     public void enableUIActions() {
         // enable clicks on all clickable elements
+        setting_button.setEnabled(true);
         lens_switch.setEnabled(true);
         cam_facing_switch.setEnabled(true);
         capture_button.setEnabled(true);
@@ -116,6 +196,10 @@ public class UIManager {
     public ImageButton getLensSwitch() {
         return this.lens_switch;
     }
+
+    public CarouselPicker getCarousel() {return this.carousel_picker;}
+
+    public Button getSettingButton() {return this.setting_button;}
 
     public void setLensFacingImage(int lens_facing_status) {
         activity.runOnUiThread(() -> {
