@@ -20,6 +20,8 @@ public class CameraController {
 
     private final UIManager ui_manager;
     private final CustomCameraManager custom_camera_manager;
+    private Runnable sleep_event;
+    private final int sec_until_sleep = 30;
     private boolean init_state = false;
 
     // offload camera configuration tasks from UI thread
@@ -33,7 +35,7 @@ public class CameraController {
     private CameraCaptureSession capture_session;
     private int quick_settings_position = 2;
     private int set_fps = 30;
-    private String set_res = "4K";
+    private String set_res = "HD";
 
     public CameraController(UIManager ui_manager) {
         this.ui_manager = ui_manager;
@@ -100,14 +102,13 @@ public class CameraController {
     // query quick settings and adjust UI and listeners accordingly to available settings
     private void setupQuickSettings() {
         // set up by tuning settings to default
-        //ui_manager.setCarouselFPS(30, quick_settings_position);
-        //ui_manager.setCarouselRes("4K", quick_settings_position);
+        ui_manager.setCarouselDefault();
 
         // different on click events depending on which quick setting selected
         ui_manager.getSettingButton().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // TODO: disable ui actions, persistent store settings so they don't reset
+                ui_manager.disableUIActions();
                 switch (quick_settings_position) {
                     case 1:
                         Log.d(TAG, "FPS event clicked");
@@ -118,6 +119,7 @@ public class CameraController {
                         resolutionClickEvent();
                         break;
                 }
+                ui_manager.enableUIActions();
             }
         });
     }
@@ -237,6 +239,8 @@ public class CameraController {
         initCarouselListener();
         init_state = false;
         startBackgroundThread();
+        sleep_event = ui_manager::sleep;
+        background_handler.postDelayed(sleep_event, sec_until_sleep * 1000);
 
         TextureView texture_view = ui_manager.getTextureView();
         // initialization step of the texture view before proceeding to set up preview and camera properties
@@ -254,6 +258,7 @@ public class CameraController {
     // call in main activity's onPause() to free resources
     public void onPause() {
         custom_camera_manager.closeCamera();
+        if (sleep_event != null) background_handler.removeCallbacks(sleep_event);
         stopBackgroundThread();
         init_state = false;
     }
@@ -276,5 +281,12 @@ public class CameraController {
         catch (Exception e) {
             Log.e(TAG, "Stop background thread error: " + e);
         }
+    }
+
+    public void wake() {
+        if (sleep_event != null) background_handler.removeCallbacks(sleep_event);
+        // reset the timer on sleep trigger if UI interaction
+        background_handler.postDelayed(sleep_event, sec_until_sleep * 1000);
+        ui_manager.wake();
     }
 }

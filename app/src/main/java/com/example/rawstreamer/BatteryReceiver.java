@@ -1,11 +1,13 @@
 package com.example.rawstreamer;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.BatteryManager;
 import android.util.Log;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -13,6 +15,11 @@ import android.widget.TextView;
 public class BatteryReceiver extends BroadcastReceiver {
 
     private static final String TAG = "BatteryReceiver";
+    private final Activity activity;
+
+    public BatteryReceiver(Activity activity) {
+        this.activity = activity;
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {

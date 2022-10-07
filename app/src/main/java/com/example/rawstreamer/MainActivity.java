@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
     private CameraController camera_controller;
     private UIManager ui_manager;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
-    private final BatteryReceiver battery_receiver = new BatteryReceiver();
+    private final BatteryReceiver battery_receiver = new BatteryReceiver(this);
     private final IntentFilter battery_intent_filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
     private final IntentFilter wifi_intent_filter = new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION);
 
@@ -54,6 +54,12 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(battery_receiver);
         unregisterReceiver(ui_manager.getWifiStateReceiver());
         camera_controller.onPause();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        camera_controller.wake();
     }
 
     // upon resume or initial startup, request for camera permissions

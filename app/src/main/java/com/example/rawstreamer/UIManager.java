@@ -1,24 +1,24 @@
 package com.example.rawstreamer;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
-import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextClock;
 import android.widget.TextView;
-
-import androidx.constraintlayout.helper.widget.Carousel;
-import androidx.viewpager.widget.ViewPager;
 
 import com.marcinmoskala.arcseekbar.ArcSeekBar;
 import com.wajahatkarim3.easyflipview.EasyFlipView;
@@ -49,7 +49,9 @@ public class UIManager {
     private final ImageView wifi_state;
     private BroadcastReceiver wifi_state_receiver;
     private final CarouselPicker carousel_picker;
+    private final LinearLayout carousel_pad;
     private final EasyFlipView settings_dropdown;
+    private boolean settings_dropdown_active = false;
     private final Button setting_button;
     private List<CarouselPicker.PickerItem> settings_items;
     private CarouselPicker.CarouselViewAdapter adapter;
@@ -68,12 +70,22 @@ public class UIManager {
         this.clock = activity.findViewById(R.id.clock);
         this.wifi_state = activity.findViewById(R.id.wifi_state);
         this.carousel_picker = activity.findViewById(R.id.carousel);
+        this.carousel_pad = activity.findViewById(R.id.carousel_pad);
         this.settings_dropdown = activity.findViewById(R.id.settings_dropdown);
         this.setting_button = activity.findViewById(R.id.setting_button);
     }
 
-    public BroadcastReceiver getWifiStateReceiver() {
-        return this.wifi_state_receiver;
+    private void setQuickSettingsVisibility(boolean visible) {
+        if (visible) {
+            carousel_picker.setVisibility(View.VISIBLE);
+            carousel_pad.setVisibility(View.VISIBLE);
+            setting_button.setVisibility(View.VISIBLE);
+        }
+        else {
+            carousel_picker.setVisibility(View.INVISIBLE);
+            carousel_pad.setVisibility(View.INVISIBLE);
+            setting_button.setVisibility(View.INVISIBLE);
+        }
     }
 
     // initializing non-camera related elements don't need the camera manager, can be initialized
@@ -99,6 +111,7 @@ public class UIManager {
             };
             createCarouselPicker();
             initSettingsDropdownListener();
+            setQuickSettingsVisibility(false);
         });
     }
 
@@ -108,7 +121,35 @@ public class UIManager {
             @Override
             public void onViewFlipCompleted(EasyFlipView flipView, EasyFlipView.FlipState newCurrentSide)
             {
-                //TODO: disableUiActions() when doing tasks
+                disableUIActions();
+                carousel_picker.animate().setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        super.onAnimationStart(animation);
+                        // disable clicking on quick settings while anim is playing, enable at finish
+                        setting_button.setClickable(false);
+                    }
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        setting_button.setClickable(true);
+                        setQuickSettingsVisibility(settings_dropdown_active);
+                    }
+                });
+                if (settings_dropdown_active) {
+                    settings_dropdown_active = false;
+                    carousel_picker.animate().translationY(-8.5f).setDuration(700).alpha(0.0f);
+                    carousel_pad.animate().translationY(-8.5f).setDuration(700).alpha(0.0f);
+                }
+                else {
+                    settings_dropdown_active = true;
+                    setQuickSettingsVisibility(true);
+                    carousel_picker.setAlpha(0.15f);
+                    carousel_pad.setAlpha(0.15f);
+                    carousel_picker.animate().translationY(10.0f).setDuration(500).alpha(1.0f);
+                    carousel_pad.animate().translationY(10.0f).setDuration(500).alpha(1.0f);
+                }
+                enableUIActions();
             }
         });
     }
@@ -118,7 +159,14 @@ public class UIManager {
         adapter.setTextColor(Color.parseColor("#F8F8FF"));
         carousel_picker.setAdapter(adapter);
         // set initial position to middle of the carousel
-        carousel_picker.setCurrentItem(current_position, false);
+        carousel_picker.setCurrentItem(current_position, true);
+    }
+
+    // sets carousel quick settings back to default
+    public void setCarouselDefault() {
+        settings_items.set(1, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_30fps_24));
+        settings_items.set(2, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_hd_24));
+        reInitCarousel(2);
     }
 
     // sets carousel's FPS image to 30 / 60
@@ -150,7 +198,6 @@ public class UIManager {
         // 5 items
         settings_items = new ArrayList<>();
         settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_exposure_24));
-
         settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_30fps_24));
         settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_4k_24));
         settings_items.add(new CarouselPicker.DrawableItem(R.drawable.ic_baseline_settings_30));
@@ -161,6 +208,7 @@ public class UIManager {
 
     public void disableUIActions() {
         // disable clicks on all clickable elements
+        settings_dropdown.setEnabled(false);
         setting_button.setEnabled(false);
         lens_switch.setEnabled(false);
         cam_facing_switch.setEnabled(false);
@@ -170,6 +218,7 @@ public class UIManager {
 
     public void enableUIActions() {
         // enable clicks on all clickable elements
+        settings_dropdown.setEnabled(true);
         setting_button.setEnabled(true);
         lens_switch.setEnabled(true);
         cam_facing_switch.setEnabled(true);
@@ -200,6 +249,10 @@ public class UIManager {
     public CarouselPicker getCarousel() {return this.carousel_picker;}
 
     public Button getSettingButton() {return this.setting_button;}
+
+    public BroadcastReceiver getWifiStateReceiver() {
+        return this.wifi_state_receiver;
+    }
 
     public void setLensFacingImage(int lens_facing_status) {
         activity.runOnUiThread(() -> {
@@ -247,5 +300,21 @@ public class UIManager {
             zoom_value.clearAnimation();
             fadeOutZoomText(2800);
         });
+    }
+
+    private void adjustBrightness(int brightness) {
+        WindowManager.LayoutParams lp = activity.getWindow().getAttributes();
+        lp.screenBrightness = (brightness / 255f);
+        activity.runOnUiThread(() -> {activity.getWindow().setAttributes(lp);});
+    }
+
+    // dim screen brightness
+    public void sleep() {
+        adjustBrightness(1);
+    }
+
+    // wake up screen (increase back to original brightness)
+    public void wake() {
+        adjustBrightness(-1);
     }
 }

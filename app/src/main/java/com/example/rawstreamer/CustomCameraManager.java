@@ -185,6 +185,7 @@ public class CustomCameraManager {
             preview_size = Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     width, height);
             preview_size = new Size(3840, 2160);
+            // preview_size = new Size(1920, 1080);
             Log.d(TAG, "Preview size chosen: " + preview_size);
             return lens_facing;
         }
