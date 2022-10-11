@@ -1,34 +1,49 @@
 package com.example.rawstreamer;
 
 import android.Manifest;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import me.ibrahimsn.lib.OnItemSelectedListener;
+import me.ibrahimsn.lib.SmoothBottomBar;
 
 public class MainActivity extends AppCompatActivity {
 
-    private CameraController camera_controller;
-    private UIManager ui_manager;
+    private static final String TAG = "MainActivity";
+    private PhotoFragment photo_fragment;
+    private int active_fragment;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
-    private final BatteryReceiver battery_receiver = new BatteryReceiver(this);
-    private final IntentFilter battery_intent_filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-    private final IntentFilter wifi_intent_filter = new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         requestCameraPermissions();
-
-        this.ui_manager = new UIManager(this);
-
-        camera_controller = new CameraController(ui_manager);
+        SmoothBottomBar nav_bar = findViewById(R.id.nav_bar);
+        nav_bar.setOnItemSelectedListener((OnItemSelectedListener) pos -> {
+            Log.d(TAG, "Navigation item selected: " + pos);
+            freeCurrentFragment();
+            active_fragment = pos;
+            switch (pos) {
+                case 0:
+                    replaceFragment(new VideoFragment());
+                    break;
+                case 1:
+                    replaceFragment(photo_fragment);
+                    break;
+                case 2:
+                    break;
+            }
+            return true;
+        });
 
         try {
             Class.forName("dalvik.system.CloseGuard")
@@ -43,23 +58,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         requestCameraPermissions();
-        camera_controller.onResume();
-        registerReceiver(battery_receiver, battery_intent_filter);
-        registerReceiver(ui_manager.getWifiStateReceiver(), wifi_intent_filter);
+        photo_fragment = new PhotoFragment(this);
+        // video_fragment =
+        // gallery_fragment =
+        // begin app with photo fragment
+        replaceFragment(photo_fragment);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(battery_receiver);
-        unregisterReceiver(ui_manager.getWifiStateReceiver());
-        camera_controller.onPause();
+        freeCurrentFragment();
     }
 
     @Override
     public void onUserInteraction() {
         super.onUserInteraction();
-        camera_controller.wake();
+        if (active_fragment == 1) photo_fragment.getCameraController().wake();
     }
 
     // upon resume or initial startup, request for camera permissions
@@ -82,6 +97,29 @@ public class MainActivity extends AppCompatActivity {
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        }
+    }
+
+    private void replaceFragment(Fragment fragment) {
+        FragmentManager fragment_manager = getSupportFragmentManager();
+        FragmentTransaction fragment_transaction = fragment_manager.beginTransaction();
+        fragment_transaction.replace(R.id.fragment_frame, fragment);
+        fragment_transaction.commit();
+    }
+
+    // depending on current fragment selected, free resources
+    private void freeCurrentFragment() {
+        switch (active_fragment) {
+            case 0:
+                break;
+            case 1:
+                Log.d(TAG, "Free photo fragment");
+                unregisterReceiver(photo_fragment.getBatteryReceiver());
+                unregisterReceiver(photo_fragment.getUIManager().getWifiStateReceiver());
+                photo_fragment.getCameraController().onPause();
+                break;
+            case 2:
+                break;
         }
     }
 }

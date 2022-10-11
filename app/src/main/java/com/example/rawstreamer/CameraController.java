@@ -21,7 +21,7 @@ public class CameraController {
     private final UIManager ui_manager;
     private final CustomCameraManager custom_camera_manager;
     private Runnable sleep_event;
-    private final int sec_until_sleep = 30;
+    private final int sec_until_sleep = 60;
     private boolean init_state = false;
 
     // offload camera configuration tasks from UI thread

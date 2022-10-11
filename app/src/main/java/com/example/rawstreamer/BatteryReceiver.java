@@ -1,13 +1,11 @@
 package com.example.rawstreamer;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.os.BatteryManager;
 import android.util.Log;
-import android.view.WindowManager;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -15,17 +13,17 @@ import android.widget.TextView;
 public class BatteryReceiver extends BroadcastReceiver {
 
     private static final String TAG = "BatteryReceiver";
-    private final Activity activity;
+    private final View photo_fragment_view;
 
-    public BatteryReceiver(Activity activity) {
-        this.activity = activity;
+    public BatteryReceiver(View photo_fragment_view) {
+        this.photo_fragment_view = photo_fragment_view;
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        TextView percent_label = ((MainActivity) context).findViewById(R.id.battery_percentage);
+        TextView percent_label = photo_fragment_view.findViewById(R.id.battery_percentage);
         String action = intent.getAction();
-        ImageView battery_image = ((MainActivity) context).findViewById(R.id.battery_image);
+        ImageView battery_image = photo_fragment_view.findViewById(R.id.battery_image);
 
         // check for battery change (increase/decrease)
         if (action != null && action.equals(Intent.ACTION_BATTERY_CHANGED)) {
@@ -41,7 +39,6 @@ public class BatteryReceiver extends BroadcastReceiver {
             Log.d(TAG, "Battery status: " + status);
 
             // set battery image based on percent
-            Resources res = context.getResources();
             // 95 - 100
             if (percentage >= 95) {
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {

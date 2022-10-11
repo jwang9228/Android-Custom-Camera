@@ -17,7 +17,7 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="AppTheme" parent="Theme.Material3.Dark">
         <item name="colorPrimary">#1c1c1c</item>
         <item name="colorPrimaryDark">#a9a9a9</item>
         <item name="colorAccent">#a9a9a9</item>

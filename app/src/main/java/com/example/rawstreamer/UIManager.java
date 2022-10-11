@@ -56,23 +56,23 @@ public class UIManager {
     private List<CarouselPicker.PickerItem> settings_items;
     private CarouselPicker.CarouselViewAdapter adapter;
 
-    public UIManager(Context context) {
-        this.context = context;
-        this.activity = (Activity) context;
-        this.texture_view = activity.findViewById(R.id.textureView);
-        this.zoom_slider = activity.findViewById(R.id.zoom_slider);
-        this.zoom_value = activity.findViewById(R.id.zoom_value);
-        this.lens_facing_image = activity.findViewById(R.id.lens_facing);
-        this.capture_button = activity.findViewById(R.id.capture_button);
-        this.cam_facing_switch = activity.findViewById(R.id.cam_facing_switch);
-        this.lens_switch = activity.findViewById(R.id.lens_switch);
-        this.chronometer = activity.findViewById(R.id.chronometer);
-        this.clock = activity.findViewById(R.id.clock);
-        this.wifi_state = activity.findViewById(R.id.wifi_state);
-        this.carousel_picker = activity.findViewById(R.id.carousel);
-        this.carousel_pad = activity.findViewById(R.id.carousel_pad);
-        this.settings_dropdown = activity.findViewById(R.id.settings_dropdown);
-        this.setting_button = activity.findViewById(R.id.setting_button);
+    public UIManager(View photo_view, Activity activity) {
+        this.activity = activity;
+        this.context = this.activity.getApplicationContext();
+        this.texture_view = photo_view.findViewById(R.id.textureView);
+        this.zoom_slider = photo_view.findViewById(R.id.zoom_slider);
+        this.zoom_value = photo_view.findViewById(R.id.zoom_value);
+        this.lens_facing_image = photo_view.findViewById(R.id.lens_facing);
+        this.capture_button = photo_view.findViewById(R.id.capture_button);
+        this.cam_facing_switch = photo_view.findViewById(R.id.cam_facing_switch);
+        this.lens_switch = photo_view.findViewById(R.id.lens_switch);
+        this.chronometer = photo_view.findViewById(R.id.chronometer);
+        this.clock = photo_view.findViewById(R.id.clock);
+        this.wifi_state = photo_view.findViewById(R.id.wifi_state);
+        this.carousel_picker = photo_view.findViewById(R.id.carousel);
+        this.carousel_pad = photo_view.findViewById(R.id.carousel_pad);
+        this.settings_dropdown = photo_view.findViewById(R.id.settings_dropdown);
+        this.setting_button = photo_view.findViewById(R.id.setting_button);
     }
 
     private void setQuickSettingsVisibility(boolean visible) {
@@ -173,24 +173,22 @@ public class UIManager {
     public void setCarouselFPS(int fps, int current_position) {
         if (fps == 30) {
             settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_30fps_24));
-            reInitCarousel(current_position);
         }
         else {
             settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_60fps_24));
-            reInitCarousel(current_position);
         }
+        reInitCarousel(current_position);
     }
 
     // sets carousel's resolution image to HD / 4K
     public void setCarouselRes(String res, int current_position) {
         if (res.equals("4K")) {
             settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_4k_24));
-            reInitCarousel(current_position);
         }
         else {
             settings_items.set(current_position, new CarouselPicker.DrawableItem(R.drawable.ic_baseline_hd_24));
-            reInitCarousel(current_position);
         }
+        reInitCarousel(current_position);
     }
 
     // carousel picker for common camera settings
@@ -305,7 +303,7 @@ public class UIManager {
     private void adjustBrightness(int brightness) {
         WindowManager.LayoutParams lp = activity.getWindow().getAttributes();
         lp.screenBrightness = (brightness / 255f);
-        activity.runOnUiThread(() -> {activity.getWindow().setAttributes(lp);});
+        activity.runOnUiThread(() -> activity.getWindow().setAttributes(lp));
     }
 
     // dim screen brightness
