@@ -109,6 +109,7 @@ public class CameraController {
             @Override
             public void onClick(View view) {
                 ui_manager.disableUIActions();
+                Log.d(TAG, "Setting button clicked");
                 switch (quick_settings_position) {
                     case 1:
                         Log.d(TAG, "FPS event clicked");

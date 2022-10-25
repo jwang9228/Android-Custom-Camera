@@ -19,6 +19,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private PhotoFragment photo_fragment;
+    private GalleryFragment gallery_fragment;
     private int active_fragment;
     private static final int REQUEST_CAMERA_PERMISSION_RESULT = 0;
 
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
                     replaceFragment(photo_fragment);
                     break;
                 case 2:
+                    replaceFragment(gallery_fragment);
                     break;
             }
             return true;
@@ -60,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         requestCameraPermissions();
         photo_fragment = new PhotoFragment(this);
         // video_fragment =
-        // gallery_fragment =
+        gallery_fragment = new GalleryFragment(this);
         // begin app with photo fragment
         replaceFragment(photo_fragment);
     }
